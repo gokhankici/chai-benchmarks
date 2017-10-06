@@ -56,7 +56,7 @@ module RaftLeaderElection {
     assume domain(f_WL) == Fs;
     assume forall f,c :: f in Fs && c in f_WL[f] ==> c in Cs;
 
-    // message buffer -- ReqVote(term,pid)
+    // message buffer -- ReqVote(term : nat, pid : nat)
     var f_ReqVote_buf : map<nat,seq<(nat,nat)>> := map f | f in Fs :: [];
     assume forall f,i,c :: f in Fs && 0 <= i < |f_ReqVote_buf[f]| && c == f_ReqVote_buf[f][i].1 ==> c in Cs;
     // #########################################################################
@@ -85,7 +85,7 @@ module RaftLeaderElection {
     assume domain(c_WL) == Cs;
     assume forall c,f :: c in Cs && f in c_WL[c] ==> f in Fs;
 
-    // message buffer -- ReqVoteResp(vote, term)
+    // message buffer -- ReqVoteResp(voteGranted : bool, term : nat)
     var c_ReqVoteResp_buf : map<nat,seq<(bool,nat)>> := map c | c in Cs :: [];
     assume domain(c_ReqVoteResp_buf) == Cs;
 
@@ -95,7 +95,6 @@ module RaftLeaderElection {
     // history
     // #########################################################################
     // f_votes[f] = Term -> Candidate voted for
-    // FIXME: is there any special construct for this?
     var f_votes : map<nat, map<nat, nat>> := *;
     assume domain(f_votes) == Fs;
     assume forall f,t :: f in Fs ==> (t in f_votes[f] <==> t in (set c | c in Cs :: c_term[c]));
@@ -262,7 +261,7 @@ module RaftLeaderElection {
              if s:
                voted    <- true
                vote     <- pid
-               votes[t] <- vote // l[c]++
+               votes[t] <- vote
              end
            */
           var t := f_t[f];
@@ -291,7 +290,7 @@ module RaftLeaderElection {
           f_p2_is_done := f_p2_is_done[f := true];
           f_pc := f_pc[f := P3];
         } else if f_pc[f] == P3 {
-          /* send pid ReqVoteResp(s,term) // (o_t[c] or o_f[c]) and c_count[c] ++
+          /* send pid ReqVoteResp(s,term)
            */
           var pid := f_pid[f];
           var s := f_s[f];
