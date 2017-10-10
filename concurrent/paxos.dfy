@@ -7,7 +7,12 @@ module PaxosSingle {
 		  set u : U | u in m :: u
   }
 
-  datatype Loc = P0 | P1 | P2
+  datatype Loc = P0 | P1 | P2 | P3 | P4 | P5 | P6 ;
+
+  datatype Msg =
+      Proposal(pid: nat, n: int)
+    | Accept(pid: nat, n: int, val: int)
+    | Value(pid: nat, vt: int, v: int);
 
   method PaxosSingle
     ( Ps : set<nat>
@@ -37,7 +42,14 @@ module PaxosSingle {
     var V       : map<nat, int> := *; assume (forall a :: a in As <==> a in V);
     var V_T     : map<nat, int> := map a | a in As :: (-1);
     var Max     : map<nat, int> := map a | a in As :: (-1);
-    var Vs      : map<nat, set<int>>  := map a | a in As :: {};
+    var Ts      : map<nat, set<int>>  := map a | a in As :: {};
+    // #########################################################################
+
+    // #########################################################################
+    // Message soups
+    // #########################################################################
+    var Acc_Soup  : map<nat, multiset<Msg>> := map a | a in As :: multiset{};
+    var Prop_Soup : map<nat, multiset<Msg>> := map p | p in Ps :: multiset{};
     // #########################################################################
 
     // #########################################################################
@@ -53,6 +65,7 @@ module PaxosSingle {
     while WL_main != {}
     invariant Ps == old(Ps);
     invariant As == old(As);
+    invariant WL_main <= Ps + As;
     invariant
         ( domain(Vs)      == As
         && domain(Max)     == As
@@ -71,6 +84,37 @@ module PaxosSingle {
         );
     decreases *
     {
+      var processToRun := *; assume processToRun in WL_main;
+
+      if processToRun in As {
+        var a := processToRun;
+
+        if Acc_Soup[a] != multiset{} {
+          var msg := *; assume msg in Acc_Soup[a];
+
+          match msg {
+            case Proposal(pid,n) =>
+              if Max[a] < n {
+                Max := Max[a := n];
+              }
+          }{
+            case Accept(pid,n,val) =>
+              if Max[a] <= n {
+                V   := V[a := val];
+                V_T := V_T[a := n];
+                Ts  := Ts[a := Ts[a] + {n}];
+              }
+          }{
+            case Value(pid,vt,v) =>
+              {}
+          }
+        }
+      }
+      else if processToRun in Ps {
+        var p := processToRun;
+
+      }
+      
     }
   }
 
