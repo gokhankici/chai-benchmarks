@@ -184,7 +184,8 @@ module RaftLeaderElection {
 
     // invariant forall f,t :: f in Fs ==> (t in f_votes[f] <==> t in (set c | c in Cs :: c_term[c]));
     free invariant old(c_term) == c_term;
-    invariant forall f,i,t,c :: f in Fs && 0 <= i < |f_ReqVote_buf[f]| && (t,c) == f_ReqVote_buf[f][i] ==> c in Cs && c_term[c] == t;
+    free invariant forall f,i,t,c :: f in Fs && 0 <= i < |f_ReqVote_buf[f]| && (t,c) == f_ReqVote_buf[f][i] ==> c in Cs && c_term[c] == t;
+
     invariant forall f,c,t :: f in Fs && c in Cs && f_voted[f] && c_term[c] == t ==> f_votes[f][t] == c;
 
     // #########################################################################
