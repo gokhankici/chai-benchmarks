@@ -51,8 +51,8 @@ module RaftLeaderElection {
     assume forall f,c :: f in Fs && c in f_WL[f] ==> c in Cs;
 
     // message buffer -- ReqVote(term : nat, pid : nat)
-    var f_ReqVote_buf : map<nat,seq<(nat,nat)>> := map f | f in Fs :: [];
-    assume forall f,i,c :: f in Fs && 0 <= i < |f_ReqVote_buf[f]| && c == f_ReqVote_buf[f][i].1 ==> c in Cs;
+    var f_ReqVote_buf : map<nat,multiset<(nat,nat)>> := map f | f in Fs :: multiset{};
+    assume domain(f_ReqVote_buf) == Fs;
     // #########################################################################
 
     // #########################################################################
@@ -77,7 +77,7 @@ module RaftLeaderElection {
     assume forall c,f :: c in Cs && f in c_WL[c] ==> f in Fs;
 
     // message buffer -- ReqVoteResp(voteGranted : bool, term : nat)
-    var c_ReqVoteResp_buf : map<nat,seq<(bool,nat)>> := map c | c in Cs :: [];
+    var c_ReqVoteResp_buf : map<nat,multiset<(bool,nat)>> := map c | c in Cs :: multiset{};
     assume domain(c_ReqVoteResp_buf) == Cs;
 
     // #########################################################################
@@ -156,7 +156,6 @@ module RaftLeaderElection {
     invariant forall f,c :: f in Fs && c in f_WL[f] ==> c in Cs;
     invariant forall c,f :: c in Cs && f == c_f[c] ==> f in Fs;
     invariant forall f,c :: f in Fs && c == f_c[f] ==> c in Cs;
-    invariant forall f,i,c :: f in Fs && 0 <= i < |f_ReqVote_buf[f]| && c == f_ReqVote_buf[f][i].1 ==> c in Cs;
     invariant forall f,c :: f in Fs && f_vote[f] == c ==> c in Cs;
 
     // ----------------------------------------------------------------------
@@ -184,7 +183,7 @@ module RaftLeaderElection {
     invariant forall c :: c in Cs && c_leader[c] ==> c_count[c] * 2 > |Fs|;
 
     invariant old(c_term) == c_term;
-    invariant forall f,i :: f in Fs && 0 <= i < |f_ReqVote_buf[f]| ==> f_ReqVote_buf[f][i].1 in Cs && c_term[f_ReqVote_buf[f][i].1] == f_ReqVote_buf[f][i].0;
+    invariant forall f,t,c :: f in Fs && 0 < |f_ReqVote_buf[f]| && (t,c) in f_ReqVote_buf[f] ==> c in Cs && c_term[c] == t;
 
     invariant forall f,t :: f in Fs ==> (t in f_votes[f] <==> t in (set c | c in Cs :: c_term[c]));
     invariant forall f,c,t :: f in Fs && f_voted[f] && f_vote[f] == c && c_term[c] == t ==> f_votes[f][t] == c;
@@ -214,14 +213,15 @@ module RaftLeaderElection {
             f_pc := f_pc[f := P2];
           }
         } else if f_pc[f] == P1 {
-          if f_ReqVote_buf[f] != [] {
+          if |f_ReqVote_buf[f]| > 0 {
             /* ReqVote(t,pid) <- recv
              */
-            var (t,pid) := f_ReqVote_buf[f][0];
+            var t := *; var pid := *;
+            assume (t,pid) in f_ReqVote_buf[f];
 
             f_pid := f_pid[f := pid];
             
-            f_ReqVote_buf := f_ReqVote_buf[f := f_ReqVote_buf[f][1..]];
+            f_ReqVote_buf := f_ReqVote_buf[f := f_ReqVote_buf[f] - multiset{(t,pid)}];
 
             /* if t > term:
                  term <- t
@@ -259,7 +259,7 @@ module RaftLeaderElection {
             /* send pid ReqVoteResp(s,term)
              */
             
-            c_ReqVoteResp_buf := c_ReqVoteResp_buf[pid := c_ReqVoteResp_buf[pid] + [(s,term)]];
+            c_ReqVoteResp_buf := c_ReqVoteResp_buf[pid := c_ReqVoteResp_buf[pid] + multiset{(s,term)}];
 
             if s {
               o_t := o_t[pid := o_t[pid] + 1];
@@ -301,14 +301,16 @@ module RaftLeaderElection {
           var f := c_f[c];
           var term := c_term[c];
 
-          f_ReqVote_buf := f_ReqVote_buf[f := f_ReqVote_buf[f] + [(term,c)]];
+          f_ReqVote_buf := f_ReqVote_buf[f := f_ReqVote_buf[f] + multiset{(term,c)}];
           c_pc := c_pc[c := P2];
         } else if c_pc[c] == P2 {
-          if c_ReqVoteResp_buf[c] != [] {
+          if |c_ReqVoteResp_buf[c]| > 0 {
             /* ReqVoteResp(s,t) <- recvTO(f)
              */
-            var (s,t) := c_ReqVoteResp_buf[c][0];
-            c_ReqVoteResp_buf := c_ReqVoteResp_buf[c := c_ReqVoteResp_buf[c][1..]];
+            var s := *; var t := *;
+            assume (s,t) in c_ReqVoteResp_buf[c];
+
+            c_ReqVoteResp_buf := c_ReqVoteResp_buf[c := c_ReqVoteResp_buf[c] - multiset{(s,t)}];
 
             if s {
               assume o_t[c] > 0;
