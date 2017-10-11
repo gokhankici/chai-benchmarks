@@ -129,7 +129,7 @@ module RaftLeaderElection {
     // #########################################################################
     // invariants
     // #########################################################################
-    free invariant
+    invariant
       ( domain(f_WL)              == Fs
       && domain(f_ReqVote_buf)     == Fs
       && domain(f_c)               == Fs
@@ -151,43 +151,43 @@ module RaftLeaderElection {
       && domain(o_t)               == Cs
       && domain(o_f)               == Cs
       );
-    free invariant main_WL <= Fs + Cs;
-    free invariant forall c,f :: c in Cs && f in c_WL[c] ==> f in Fs;
-    free invariant forall f,c :: f in Fs && c in f_WL[f] ==> c in Cs;
-    free invariant forall c,f :: c in Cs && f == c_f[c] ==> f in Fs;
-    free invariant forall f,c :: f in Fs && c == f_c[f] ==> c in Cs;
-    free invariant forall f,i,c :: f in Fs && 0 <= i < |f_ReqVote_buf[f]| && c == f_ReqVote_buf[f][i].1 ==> c in Cs;
-    free invariant forall f,c :: f in Fs && f_vote[f] == c ==> c in Cs;
+    invariant main_WL <= Fs + Cs;
+    invariant forall c,f :: c in Cs && f in c_WL[c] ==> f in Fs;
+    invariant forall f,c :: f in Fs && c in f_WL[f] ==> c in Cs;
+    invariant forall c,f :: c in Cs && f == c_f[c] ==> f in Fs;
+    invariant forall f,c :: f in Fs && c == f_c[f] ==> c in Cs;
+    invariant forall f,i,c :: f in Fs && 0 <= i < |f_ReqVote_buf[f]| && c == f_ReqVote_buf[f][i].1 ==> c in Cs;
+    invariant forall f,c :: f in Fs && f_vote[f] == c ==> c in Cs;
 
     // ----------------------------------------------------------------------
 
-    free invariant forall c :: c in Cs ==> k[c] >= 0;
-    free invariant forall c :: c in Cs ==> l[c] >= 0;
-    free invariant forall c :: c in Cs ==> c_count[c] >= 0;
-    free invariant forall c :: c in Cs ==> |Fs| >= k[c] + l[c];
+    invariant forall c :: c in Cs ==> k[c] >= 0;
+    invariant forall c :: c in Cs ==> l[c] >= 0;
+    invariant forall c :: c in Cs ==> c_count[c] >= 0;
+    invariant forall c :: c in Cs ==> |Fs| >= k[c] + l[c];
 
     // ----------------------------------------------------------------------
 
-    free invariant forall f :: f in Fs && f !in main_WL ==> f_pc[f] == P2;
-    free invariant forall c :: c in Cs && c !in main_WL ==> c_pc[c] == P3;
+    invariant forall f :: f in Fs && f !in main_WL ==> f_pc[f] == P2;
+    invariant forall c :: c in Cs && c !in main_WL ==> c_pc[c] == P3;
 
     // ----------------------------------------------------------------------
 
-    free invariant forall c :: c in Cs ==> o_t[c] >= 0;
-    free invariant forall c :: c in Cs ==> o_f[c] >= 0;
-    free invariant forall c :: c in Cs ==> |c_ReqVoteResp_buf[c]| >= o_t[c] + o_f[c];
+    invariant forall c :: c in Cs ==> o_t[c] >= 0;
+    invariant forall c :: c in Cs ==> o_f[c] >= 0;
+    invariant forall c :: c in Cs ==> |c_ReqVoteResp_buf[c]| >= o_t[c] + o_f[c];
 
     // ----------------------------------------------------------------------
 
-    free invariant forall c :: c in Cs ==> l[c] >= o_t[c] + c_count[c];
+    invariant forall c :: c in Cs ==> l[c] >= o_t[c] + c_count[c];
 
-    free invariant forall c :: c in Cs && c_leader[c] ==> c_count[c] * 2 > |Fs|;
+    invariant forall c :: c in Cs && c_leader[c] ==> c_count[c] * 2 > |Fs|;
 
-    free invariant old(c_term) == c_term;
-    free invariant forall f,i :: f in Fs && 0 <= i < |f_ReqVote_buf[f]| ==> f_ReqVote_buf[f][i].1 in Cs && c_term[f_ReqVote_buf[f][i].1] == f_ReqVote_buf[f][i].0;
+    invariant old(c_term) == c_term;
+    invariant forall f,i :: f in Fs && 0 <= i < |f_ReqVote_buf[f]| ==> f_ReqVote_buf[f][i].1 in Cs && c_term[f_ReqVote_buf[f][i].1] == f_ReqVote_buf[f][i].0;
 
-    free invariant forall f,t :: f in Fs ==> (t in f_votes[f] <==> t in (set c | c in Cs :: c_term[c]));
-    free invariant forall f,c,t :: f in Fs && f_voted[f] && f_vote[f] == c && c_term[c] == t ==> f_votes[f][t] == c;
+    invariant forall f,t :: f in Fs ==> (t in f_votes[f] <==> t in (set c | c in Cs :: c_term[c]));
+    invariant forall f,c,t :: f in Fs && f_voted[f] && f_vote[f] == c && c_term[c] == t ==> f_votes[f][t] == c;
 
     // #########################################################################
 
