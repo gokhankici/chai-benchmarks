@@ -157,6 +157,7 @@ module RaftLeaderElection {
     free invariant forall c,f :: c in Cs && f == c_f[c] ==> f in Fs;
     free invariant forall f,c :: f in Fs && c == f_c[f] ==> c in Cs;
     free invariant forall f,i,c :: f in Fs && 0 <= i < |f_ReqVote_buf[f]| && c == f_ReqVote_buf[f][i].1 ==> c in Cs;
+    free invariant forall f,c :: f in Fs && f_vote[f] == c ==> c in Cs;
 
     // ----------------------------------------------------------------------
 
@@ -182,11 +183,11 @@ module RaftLeaderElection {
 
     free invariant forall c :: c in Cs && c_leader[c] ==> c_count[c] * 2 > |Fs|;
 
-    // invariant forall f,t :: f in Fs ==> (t in f_votes[f] <==> t in (set c | c in Cs :: c_term[c]));
     free invariant old(c_term) == c_term;
-    free invariant forall f,i,t,c :: f in Fs && 0 <= i < |f_ReqVote_buf[f]| && (t,c) == f_ReqVote_buf[f][i] ==> c in Cs && c_term[c] == t;
+    free invariant forall f,i :: f in Fs && 0 <= i < |f_ReqVote_buf[f]| ==> f_ReqVote_buf[f][i].1 in Cs && c_term[f_ReqVote_buf[f][i].1] == f_ReqVote_buf[f][i].0;
 
-    invariant forall f,c,t :: f in Fs && c in Cs && f_voted[f] && c_term[c] == t ==> f_votes[f][t] == c;
+    free invariant forall f,t :: f in Fs ==> (t in f_votes[f] <==> t in (set c | c in Cs :: c_term[c]));
+    free invariant forall f,c,t :: f in Fs && f_voted[f] && f_vote[f] == c && c_term[c] == t ==> f_votes[f][t] == c;
 
     // #########################################################################
 
@@ -345,29 +346,29 @@ module RaftLeaderElection {
       }
     }
 
-    // assert forall c :: c in Cs && c_leader[c] ==> l[c] * 2 > |Fs|;
+    assert forall c :: c in Cs && c_leader[c] ==> l[c] * 2 > |Fs|;
 
-    // // this is the reasoning about cardinalities
-    // assume(forall c1,c2 ::
-    //   (c1 in Cs && c2 in Cs && l[c1] * 2 > |Fs| && l[c2] * 2 > |Fs|) ==>
-    //   (exists f :: f in Fs
-    //   && f_term[f] == c_term[c1]
-    //   && f_term[f] == c_term[c2]
-    //   && f_vote[f] == c1
-    //   && f_vote[f] == c2) ||
-    //   (exists f :: f in Fs
-    //   && f_term[f] == c_term[c1]
-    //   && f_term[f] >  c_term[c2]
-    //   && f_vote[f] == c1
-    //   && f_votes[f][c_term[c2]] == c2) ||
-    //   (exists f :: f in Fs
-    //   && f_term[f] > c_term[c1]
-    //   && f_term[f] > c_term[c2]
-    //   && f_votes[f][c_term[c1]] == c1
-    //   && f_votes[f][c_term[c2]] == c2));
+    // this is the reasoning about cardinalities
+    assume(forall c1,c2 ::
+      (c1 in Cs && c2 in Cs && l[c1] * 2 > |Fs| && l[c2] * 2 > |Fs|) ==>
+      (exists f :: f in Fs
+      && f_term[f] == c_term[c1]
+      && f_term[f] == c_term[c2]
+      && f_vote[f] == c1
+      && f_vote[f] == c2) ||
+      (exists f :: f in Fs
+      && f_term[f] == c_term[c1]
+      && f_term[f] >  c_term[c2]
+      && f_vote[f] == c1
+      && f_votes[f][c_term[c2]] == c2) ||
+      (exists f :: f in Fs
+      && f_term[f] > c_term[c1]
+      && f_term[f] > c_term[c2]
+      && f_votes[f][c_term[c1]] == c1
+      && f_votes[f][c_term[c2]] == c2));
 
-    // assert (forall c1, c2 :: 
-    //   (c1 in Cs && c2 in Cs && c_term[c1] == c_term[c2] && c_leader[c1] && c_leader[c2] ==> c1 == c2)
-    // );
+    assert (forall c1, c2 :: 
+      (c1 in Cs && c2 in Cs && c_term[c1] == c_term[c2] && c_leader[c1] && c_leader[c2] ==> c1 == c2)
+    );
   }
 }
