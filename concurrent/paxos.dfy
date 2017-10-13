@@ -92,6 +92,22 @@ module PaxosSingle {
     var Prop_Soup : map<nat, multiset<(nat,Msg_Prop)>> := map p | p in Ps :: multiset{};
 
     // #########################################################################
+    // Set cardinalities
+    // #########################################################################
+
+    // k[p] := #{a in A | p.n in a.ns}
+    // i.e. number of acceptors have accepted p's proposal
+    var k : map<nat, nat> := map p | p in Ps :: 0;
+
+    // l[p] := #{a in A | p.n !in a.ns && a.max <= p.n}
+    // i.e. number of acceptors may accept p's proposal
+    var l : map<nat, nat> := map p | p in Ps :: len(As);
+
+    // m[p] := #{a in A | p.n !in a.ns && a.max > p.n}
+    // i.e. number of acceptors will never accept p's proposal
+    var m : map<nat, nat> := map p | p in Ps :: 0;
+
+    // #########################################################################
 
     var WL_main := Ps + As;
 
@@ -117,6 +133,10 @@ module PaxosSingle {
         && domain(Prop_WL)      == Ps
         && domain(Prop_WL2)     == Ps
         && domain(Prop_a)       == Ps
+
+        && domain(k)            == Ps
+        && domain(l)            == Ps
+        && domain(m)            == Ps
         );
     invariant forall a:nat,pid:nat,msg:Msg_Acc :: a in As && (pid,msg) in Acc_Soup[a] ==> pid in Ps;
     invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup[p] ==> pid in As;
@@ -343,7 +363,7 @@ module PaxosSingle {
     }
 
     // forall p1,p2 :: p1.decided && p2.decided ==> p1.v == p2.v
-    assert forall p1,p2 :: p1 in Ps && p2 in Ps && Prop_Decided[p1] && Prop_Decided[p2] ==> Prop_V[p1] == Prop_V[p2];
+    // assert forall p1,p2 :: p1 in Ps && p2 in Ps && Prop_Decided[p1] && Prop_Decided[p2] ==> Prop_V[p1] == Prop_V[p2];
 
   }
 }
