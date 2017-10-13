@@ -281,7 +281,7 @@ module PaxosSingle {
           }
 
         } else if Prop_PC[p] == P5 {
-          /* send a (p, Proposal(n))
+          /* send a (p, Accept(n))
            */
           var a := Prop_a[p];
           var n := Prop_N[p];
@@ -329,6 +329,10 @@ module PaxosSingle {
           }
 
         } else if Prop_PC[p] == P7 {
+          /* if ho * 2 > |A| {
+               decided <- true
+             }
+           */
           var ho := Prop_HO[p];
           if ho * 2 > |As| {
             Prop_Decided := Prop_Decided[p := true];
@@ -338,6 +342,7 @@ module PaxosSingle {
       }
     }
 
+    // forall p1,p2 :: p1.decided && p2.decided ==> p1.v == p2.v
     assert forall p1,p2 :: p1 in Ps && p2 in Ps && Prop_Decided[p1] && Prop_Decided[p2] ==> Prop_V[p1] == Prop_V[p2];
 
   }
