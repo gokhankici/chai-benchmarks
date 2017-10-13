@@ -259,12 +259,14 @@ module RaftLeaderElection {
             /* send pid ReqVoteResp(s,term)
              */
             
-            c_ReqVoteResp_buf := c_ReqVoteResp_buf[pid := c_ReqVoteResp_buf[pid] + multiset{(s,term)}];
+            if * {
+              c_ReqVoteResp_buf := c_ReqVoteResp_buf[pid := c_ReqVoteResp_buf[pid] + multiset{(s,term)}];
 
-            if s {
-              o_t := o_t[pid := o_t[pid] + 1];
-            } else {
-              o_f := o_f[pid := o_f[pid] + 1];
+              if s {
+                o_t := o_t[pid := o_t[pid] + 1];
+              } else {
+                o_f := o_f[pid := o_f[pid] + 1];
+              }
             }
 
             f_WL := f_WL[f := f_WL[f] - {f_c[f]}];
@@ -304,33 +306,39 @@ module RaftLeaderElection {
           f_ReqVote_buf := f_ReqVote_buf[f := f_ReqVote_buf[f] + multiset{(term,c)}];
           c_pc := c_pc[c := P2];
         } else if c_pc[c] == P2 {
-          if |c_ReqVoteResp_buf[c]| > 0 {
-            /* ReqVoteResp(s,t) <- recvTO(f)
-             */
-            var s := *; var t := *;
-            assume (s,t) in c_ReqVoteResp_buf[c];
+          if * {
+            if |c_ReqVoteResp_buf[c]| > 0 {
+              /* ReqVoteResp(s,t) <- recvTO(f)
+               */
+              var s := *; var t := *;
+              assume (s,t) in c_ReqVoteResp_buf[c];
 
-            c_ReqVoteResp_buf := c_ReqVoteResp_buf[c := c_ReqVoteResp_buf[c] - multiset{(s,t)}];
+              c_ReqVoteResp_buf := c_ReqVoteResp_buf[c := c_ReqVoteResp_buf[c] - multiset{(s,t)}];
 
-            if s {
-              assume o_t[c] > 0;
-              o_t := o_t[c := o_t[c] - 1];
-            } else {
-              assume o_f[c] > 0;
-              o_f := o_f[c := o_f[c] - 1];
+              if s {
+                assume o_t[c] > 0;
+                o_t := o_t[c := o_t[c] - 1];
+              } else {
+                assume o_f[c] > 0;
+                o_f := o_f[c := o_f[c] - 1];
+              }
+              
+              c_pc := c_pc[c := P3];
+
+              /* if s:
+                   count <- count + 1
+                 end
+               */
+
+              if s {
+                c_count := c_count[c := c_count[c] + 1];
+              }
+
+              c_WL := c_WL[c := c_WL[c] - {c_f[c]}];
+              c_pc := c_pc[c := P0];
             }
-            
-            c_pc := c_pc[c := P3];
-
-            /* if s:
-               count <- count + 1
-               end
-             */
-
-            if s {
-              c_count := c_count[c := c_count[c] + 1];
-            }
-
+          } else {
+            // timeout
             c_WL := c_WL[c := c_WL[c] - {c_f[c]}];
             c_pc := c_pc[c := P0];
           }
