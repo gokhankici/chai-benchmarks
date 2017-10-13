@@ -34,40 +34,62 @@ module PaxosSingle {
     // #########################################################################
     // Proposer local state
     // #########################################################################
-    var X        : map<nat, int> := *; assume (forall p :: p in Ps <==> p in X);
-    var X_T      : map<nat, int> := map p | p in Ps :: (-1);
-    var T        : map<nat, nat> := *; assume (forall p :: p in Ps <==> p in T);
-    var HO       : map<nat, nat> := map p | p in Ps :: 0;
-    var Ready    : map<nat, bool>     := map p | p in Ps :: false;
-    var Decided  : map<nat, bool>     := map p | p in Ps :: false;
-    var Prop_PC  : map<nat, Loc>      := map p | p in Ps :: P0;
+
+    var Prop_V : map<nat, int> := *;
+    assume domain(Prop_V) == Ps;
+
+    var Prop_N : map<nat, nat> := *;
+    assume domain(Prop_N) == Ps;
+
+    var Prop_Max : map<nat, int> := map p | p in Ps :: (-1);
+
+    var Prop_PC  : map<nat, Loc>  := map p | p in Ps :: P0;
+
+    var Prop_a   : map<nat, nat> := *;
+    assume domain(Prop_a) == Ps;
+
+    var Prop_HO       : map<nat, nat>  := map p | p in Ps :: 0;
+    var Prop_Ready    : map<nat, bool> := map p | p in Ps :: false;
+    var Prop_Decided  : map<nat, bool> := map p | p in Ps :: false;
+
     var Prop_WL  : map<nat, set<nat>> := map p | p in Ps :: As;
     var Prop_WL2 : map<nat, set<nat>> := map p | p in Ps :: As;
-    var Prop_a   : map<nat, nat> := *; assume (forall p :: p in Ps <==> p in Prop_a); assume(forall p,a :: p in Ps && a == Prop_a[p] ==> a in As);
-    // #########################################################################
 
     // #########################################################################
     // Acceptor State
     // #########################################################################
-    var V       : map<nat, int> := *; assume (forall a :: a in As <==> a in V);
-    var V_T     : map<nat, int> := map a | a in As :: (-1);
-    var Max     : map<nat, int> := map a | a in As :: (-1);
-    var Ts      : map<nat, set<int>>  := map a | a in As :: {};
-    // #########################################################################
+
+    var Acc_V : map<nat, int> := *;
+    assume domain(Acc_V) == As;
+
+    var Acc_N   : map<nat, int>       := map a | a in As :: (-1);
+    var Acc_Max : map<nat, int>       := map a | a in As :: (-1);
+    var Acc_Ns  : map<nat, set<int>>  := map a | a in As :: {};
+    var Acc_PC  : map<nat, Loc>       := map a | a in As :: P0;
 
     // #########################################################################
     // Message soups
     // #########################################################################
+
     var Acc_Soup  : map<nat, multiset<(nat,Msg_Acc)>>  := map a | a in As :: multiset{};
     var Prop_Soup : map<nat, multiset<(nat,Msg_Prop)>> := map p | p in Ps :: multiset{};
-    // #########################################################################
 
     // #########################################################################
     // Set cardinalities
     // #########################################################################
+
+    // k[p] := #{a in A | p.n in a.ns}
+    // i.e. number of acceptors have accepted p's proposal
     var k : map<nat, nat> := map p | p in Ps :: 0;
+
+    // l[p] := #{a in A | p.n !in a.ns && a.max <= p.n}
+    // i.e. number of acceptors may accept p's proposal
     var l : map<nat, nat> := map p | p in Ps :: len(As);
+
+    // m[p] := #{a in A | p.n !in a.ns && a.max > p.n}
+    // i.e. number of acceptors will never accept p's proposal
     var m : map<nat, nat> := map p | p in Ps :: 0;
+
     // #########################################################################
 
     var WL_main := Ps + As;
@@ -77,25 +99,26 @@ module PaxosSingle {
     invariant As == old(As);
     invariant WL_main <= Ps + As;
     invariant
-        ( domain(Ts)        == As
-        && domain(Max)       == As
-        && domain(V)         == As 
-        && domain(V_T)       == As
-        && domain(Prop_WL)   == Ps
-        && domain(Prop_WL2)  == Ps
-        && domain(Prop_PC)   == Ps
-        && domain(X)         == Ps
-        && domain(X_T)       == Ps
-        && domain(HO)        == Ps
-        && domain(k)         == Ps
-        && domain(l)         == Ps
-        && domain(m)         == Ps
-        && domain(Decided)   == Ps
-        && domain(Ready)     == Ps
+        ( domain(Acc_Ns)       == As
+        && domain(Acc_Max)      == As
+        && domain(Acc_N)        == As
+        && domain(Acc_Soup)     == As
+        && domain(Acc_V)        == As 
 
-        && domain(Acc_Soup)  == As
-        && domain(Prop_Soup) == Ps
-        && domain(Prop_a)    == Ps
+        && domain(Prop_Decided) == Ps
+        && domain(Prop_HO)      == Ps
+        && domain(Prop_N)       == Ps
+        && domain(Prop_PC)      == Ps
+        && domain(Prop_Ready)   == Ps
+        && domain(Prop_Soup)    == Ps
+        && domain(Prop_V)       == Ps
+        && domain(Prop_WL)      == Ps
+        && domain(Prop_WL2)     == Ps
+        && domain(Prop_a)       == Ps
+
+        && domain(k)            == Ps
+        && domain(l)            == Ps
+        && domain(m)            == Ps
         );
     invariant forall a:nat,pid:nat,msg:Msg_Acc :: a in As && (pid,msg) in Acc_Soup[a] ==> pid in Ps;
     invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup[p] ==> pid in As;
@@ -117,19 +140,19 @@ module PaxosSingle {
 
           match msg {
             case Proposal(n) =>
-              if Max[a] < n {
-                Max := Max[a := n];
+              if Acc_Max[a] < n {
+                Acc_Max := Acc_Max[a := n];
               }
             case Accept(n,val) =>
-              if Max[a] <= n {
-                V   := V[a := val];
-                V_T := V_T[a := n];
-                Ts  := Ts[a := Ts[a] + {n}];
+              if Acc_Max[a] <= n {
+                Acc_V   := Acc_V[a := val];
+                Acc_N := Acc_N[a := n];
+                Acc_Ns  := Acc_Ns[a := Acc_Ns[a] + {n}];
               }
           }
 
-          var vt := V_T[a];
-          var v  := V[a];
+          var vt := Acc_N[a];
+          var v  := Acc_V[a];
 
           if * {
             Prop_Soup := Prop_Soup[pid := Prop_Soup[pid] + multiset{(a,Value(vt, v))}];
@@ -159,7 +182,7 @@ module PaxosSingle {
           /* send a (p, Proposal(t))
            */
           var a := Prop_a[p];
-          var t := T[p];
+          var t := Prop_N[p];
           Acc_Soup := Acc_Soup[a := Acc_Soup[a] + multiset{(p, Proposal(t))}];
           Prop_PC := Prop_PC[p := P2];
         } else if Prop_PC[p] == P2 {
@@ -179,10 +202,10 @@ module PaxosSingle {
                <P4>
              }
            */
-          var ho := HO[p];
+          var ho := Prop_HO[p];
           if ho * 2 > |As| {
-            HO := HO[p := 0];
-            Ready := Ready[p := true];
+            Prop_HO := Prop_HO[p := 0];
+            Prop_Ready := Prop_Ready[p := true];
             Prop_PC := Prop_PC[p := P4];
           } else {
             Prop_PC := Prop_PC[p := P7];
@@ -210,9 +233,9 @@ module PaxosSingle {
         } else if Prop_PC[p] == P6 {
           // TODO
         } else if Prop_PC[p] == P7 {
-          var ho := HO[p];
+          var ho := Prop_HO[p];
           if ho * 2 > |As| {
-            Decided := Decided[p := true];
+            Prop_Decided := Prop_Decided[p := true];
           }
           WL_main := WL_main - {p};
         }
