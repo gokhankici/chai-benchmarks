@@ -59,6 +59,7 @@ module PaxosSingle {
 
     var Prop_a   : map<nat, nat> := *;
     assume domain(Prop_a) == Ps;
+    assume forall p,a :: p in Ps && a == Prop_a[p] ==> a in As;
 
     var Prop_WL  : map<nat, set<nat>> := map p | p in Ps :: As;
     var Prop_WL2 : map<nat, set<nat>> := map p | p in Ps :: As;
@@ -123,6 +124,7 @@ module PaxosSingle {
 
         && domain(Prop_Decided) == Ps
         && domain(Prop_HO)      == Ps
+        && domain(Prop_Max)     == Ps
         && domain(Prop_N)       == Ps
         && domain(Prop_PC)      == Ps
         && domain(Prop_Ready)   == Ps
@@ -244,7 +246,7 @@ module PaxosSingle {
               var msg := *;
 
               assume (pid,msg) in Prop_Soup[p];
-              Prop_Soup := Prop_Soup[p := Prop_Soup[a] - multiset{(pid,msg)}];
+              Prop_Soup := Prop_Soup[p := Prop_Soup[p] - multiset{(pid,msg)}];
 
               match msg {
                 case Value(no, val) =>
@@ -328,7 +330,7 @@ module PaxosSingle {
               var msg := *;
 
               assume (pid,msg) in Prop_Soup[p];
-              Prop_Soup := Prop_Soup[p := Prop_Soup[a] - multiset{(pid,msg)}];
+              Prop_Soup := Prop_Soup[p := Prop_Soup[p] - multiset{(pid,msg)}];
 
               match msg {
                 case Value(no, val) =>
