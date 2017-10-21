@@ -42,6 +42,8 @@ module PaxosSingle {
     // proposal number of the proposal
     var Prop_N : map<nat, nat> := *;
     assume domain(Prop_N) == Ps;
+    assume forall p :: p in Ps ==> Prop_N[p] > 0;
+    assume forall p1,p2 :: p1 in Ps && p2 in Ps ==> (p1 == p2 <==> Prop_N[p1] == Prop_N[p2]);
 
     // max seen proposal number
     var Prop_Max : map<nat, int> := map p | p in Ps :: (-1);
@@ -92,6 +94,22 @@ module PaxosSingle {
     var Prop_Soup : map<nat, multiset<(nat,Msg_Prop)>> := map p | p in Ps :: multiset{};
 
     // #########################################################################
+    // Message histories
+    // #########################################################################
+
+    var Prop_No_Hist   : set<nat>                     := {};
+    var Prop_Resp_Hist : map<nat, set<(int,int,int)>> := map a | a in As :: {};
+    var Acc_Msg_Hist   : set<(int,int)>               := {};
+    var Vote_Hist      : map<nat, set<(int,int)>>     := map a | a in As :: {};
+
+    // #########################################################################
+    // Other history variables
+    // #########################################################################
+
+    // (a,n) in Joined_Rnd ==> a has seen a proposal msg numbered n
+    var Joined_Rnd : map<nat, set<int>> := map a | a in As :: {};
+
+    // #########################################################################
     // Set cardinalities
     // #########################################################################
 
@@ -112,36 +130,73 @@ module PaxosSingle {
     var WL_main := Ps + As;
 
     while WL_main != {}
-    invariant Ps == old(Ps);
-    invariant As == old(As);
-    invariant WL_main <= Ps + As;
-    invariant
-        ( domain(Acc_Ns)       == As
-        && domain(Acc_Max)      == As
-        && domain(Acc_N)        == As
-        && domain(Acc_Soup)     == As
-        && domain(Acc_V)        == As 
+    free invariant Ps == old(Ps);
+    free invariant As == old(As);
+    free invariant WL_main <= Ps + As;
+    free invariant
+        ( domain(Acc_Ns)         == As
+        && domain(Acc_Max)        == As
+        && domain(Acc_N)          == As
+        && domain(Acc_Soup)       == As
+        && domain(Acc_V)          == As 
 
-        && domain(Prop_Decided) == Ps
-        && domain(Prop_HO)      == Ps
-        && domain(Prop_Max)     == Ps
-        && domain(Prop_N)       == Ps
-        && domain(Prop_PC)      == Ps
-        && domain(Prop_Ready)   == Ps
-        && domain(Prop_Soup)    == Ps
-        && domain(Prop_V)       == Ps
-        && domain(Prop_WL)      == Ps
-        && domain(Prop_WL2)     == Ps
-        && domain(Prop_a)       == Ps
+        && domain(Prop_Decided)   == Ps
+        && domain(Prop_HO)        == Ps
+        && domain(Prop_Max)       == Ps
+        && domain(Prop_N)         == Ps
+        && domain(Prop_PC)        == Ps
+        && domain(Prop_Ready)     == Ps
+        && domain(Prop_Soup)      == Ps
+        && domain(Prop_V)         == Ps
+        && domain(Prop_WL)        == Ps
+        && domain(Prop_WL2)       == Ps
+        && domain(Prop_a)         == Ps
 
-        && domain(k)            == Ps
-        && domain(l)            == Ps
-        && domain(m)            == Ps
+        && domain(k)              == Ps
+        && domain(l)              == Ps
+        && domain(m)              == Ps
+
+        && domain(Prop_Resp_Hist) == As
+        && domain(Vote_Hist)      == As
+        && domain(Joined_Rnd)     == As
         );
-    invariant forall a:nat,pid:nat,msg:Msg_Acc :: a in As && (pid,msg) in Acc_Soup[a] ==> pid in Ps;
-    invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup[p] ==> pid in As;
-    invariant forall p,a :: p in Ps && a == Prop_a[p] ==> a in As;
-    invariant forall p :: p in Ps ==> Prop_WL[p] <= As && Prop_WL2[p] <= As;
+    free invariant forall a:nat,pid:nat,msg:Msg_Acc :: a in As && (pid,msg) in Acc_Soup[a] ==> pid in Ps;
+    free invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup[p] ==> pid in As;
+    free invariant forall p,a :: p in Ps && a == Prop_a[p] ==> a in As;
+    free invariant forall p :: p in Ps ==> Prop_WL[p] <= As && Prop_WL2[p] <= As;
+
+    // ----------------------------------------------------------------------
+
+    // sequencing
+    free invariant forall p :: p in Ps && old(Prop_PC[p]) !in {P0, P1, P2} ==> Prop_PC[p] !in {P0, P1, P2};
+
+    // ----------------------------------------------------------------------
+
+    free invariant forall n,v1,v2 :: (n,v1) in Acc_Msg_Hist && (n,v2) in Acc_Msg_Hist ==> v1 == v2; // (5)
+    free invariant forall p1,p2 :: p1 in Ps && p2 in Ps ==> (p1 == p2 <==> Prop_N[p1] == Prop_N[p2]);
+    free invariant forall p :: p in Ps ==> Prop_N[p] == old(Prop_N[p]);
+    free invariant forall p :: p in Ps && Prop_PC[p] !in {P0, P1, P2} ==> Prop_V[p] == old(Prop_V[p]);
+    free invariant forall p :: p in Ps && old(Prop_PC[p]) !in {P0, P1, P2} ==> Prop_V[p] == old(Prop_V[p]);
+    free invariant forall p,n,v :: p in Ps && (n,v) in Acc_Msg_Hist && n == Prop_N[p] ==> Prop_PC[p] !in {P0, P1, P2} && v == Prop_V[p];
+
+    // ----------------------------------------------------------------------
+
+    // invariant forall a,n,v :: a in As && (n,v) in Vote_Hist[a] ==> (n,v) in Acc_Msg_Hist; // (6)
+    // invariant forall p,n:int,v:int :: p in Ps && Prop_Decided[p] && n == Prop_N[p] && v == Prop_V[p] ==> |{set a | a in As && (n,v) in Vote_Hist[a] :: a}| > |As|/2; // (7)
+
+    // invariant forall a,n,n',v,v' :: a in As && (n,-1,v) in Prop_Resp_Hist[a] && n' < n ==> (n',v') !in Vote_Hist[a]; // (8)
+    // invariant forall a,n,n',v :: a in As && (n,n',v) in Prop_Resp_Hist[a] && n' > 0 ==> n' < n && (n',v) in Vote_Hist[a]; // (9)
+    // invariant forall a,n,n',n'',v,v' :: a in As && (n,n',v) in Prop_Resp_Hist[a] && n' > 0 && n' < n'' < n ==> (n'',v') !in Vote_Hist[a]; // (10)
+
+    // invariant forall a,v :: a in As ==> (-1,v) !in Vote_Hist[a]; // (11)
+
+    // invariant forall n1,n2,v1,v2 :: (n1,v1) in Acc_Msg_Hist && n1 < n2 && v1 != v2 ==> |{set a | a in As && (n1,v1) !in Vote_Hist[a] && Acc_Max[a] > n1}| > |As|/2; // (13)
+
+    // invariant forall a,n1,n2 :: n1 < n2 && a in As && n2 in Joined_Rnd[a] ==> n1 < Acc_Max[a]; // (14)
+    // invariant forall a,n,n',v :: a in As && (n,n',v) in Prop_Resp_Hist[a] ==> n in Joined_Rnd[a]; // (15)
+
+    // invariant forall p1,p2 :: p1 in Ps && p2 in Ps && Prop_Decided[p1] && Prop_Decided[p2] ==> Prop_V[p1] == Prop_V[p2]; // (4)
+
     decreases *
     {
       var processToRun := *; assume processToRun in WL_main;
@@ -191,6 +246,15 @@ module PaxosSingle {
             var v := Acc_V[a];
 
             Prop_Soup := Prop_Soup[pid := Prop_Soup[pid] + multiset{(a,Value(n, v))}];
+
+            // history variable update
+            match msg {
+              case Proposal(no) =>
+                Prop_Resp_Hist := Prop_Resp_Hist[a := Prop_Resp_Hist[a] + {(no, n, v)}];
+                Joined_Rnd := Joined_Rnd[a := Joined_Rnd[a] + {n}];
+              case Accept(no,val) =>
+                Vote_Hist := Vote_Hist[a := Vote_Hist[a] + {(n,v)}];
+            }
           }
         }
       }
@@ -222,6 +286,7 @@ module PaxosSingle {
           var n := Prop_N[p];
 
           Acc_Soup := Acc_Soup[a := Acc_Soup[a] + multiset{(p, Proposal(n))}];
+          Prop_No_Hist := Prop_No_Hist + {n};
 
           Prop_PC := Prop_PC[p := P2];
 
@@ -308,6 +373,9 @@ module PaxosSingle {
           var v := Prop_V[p];
 
           Acc_Soup := Acc_Soup[a := Acc_Soup[a] + multiset{(p, Accept(n,v))}];
+
+          // history update
+          Acc_Msg_Hist := Acc_Msg_Hist + {(n,v)};
 
           Prop_PC := Prop_PC[p := P6];
 
