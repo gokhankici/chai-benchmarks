@@ -182,13 +182,19 @@ module PaxosSingle {
     // ----------------------------------------------------------------------
 
     // invariant forall a,n,v :: a in As && (n,v) in Vote_Hist[a] ==> (n,v) in Acc_Msg_Hist; // (6)
+
+    free invariant forall a,p,n,v :: a in As && (p, Accept(n,v)) in Acc_Soup[a] ==> (n,v) in Acc_Msg_Hist;
+    // invariant forall a,n,v :: a in As && (n,v) in Vote_Hist[a] ==> true;
+
+    // ----------------------------------------------------------------------
+
     // invariant forall p,n:int,v:int :: p in Ps && Prop_Decided[p] && n == Prop_N[p] && v == Prop_V[p] ==> |{set a | a in As && (n,v) in Vote_Hist[a] :: a}| > |As|/2; // (7)
 
     // invariant forall a,n,n',v,v' :: a in As && (n,-1,v) in Prop_Resp_Hist[a] && n' < n ==> (n',v') !in Vote_Hist[a]; // (8)
     // invariant forall a,n,n',v :: a in As && (n,n',v) in Prop_Resp_Hist[a] && n' > 0 ==> n' < n && (n',v) in Vote_Hist[a]; // (9)
     // invariant forall a,n,n',n'',v,v' :: a in As && (n,n',v) in Prop_Resp_Hist[a] && n' > 0 && n' < n'' < n ==> (n'',v') !in Vote_Hist[a]; // (10)
 
-    // invariant forall a,v :: a in As ==> (-1,v) !in Vote_Hist[a]; // (11)
+    invariant forall a,vote :: a in As && vote in Vote_Hist[a]==> vote.0 > 0; // (11)
 
     // invariant forall n1,n2,v1,v2 :: (n1,v1) in Acc_Msg_Hist && n1 < n2 && v1 != v2 ==> |{set a | a in As && (n1,v1) !in Vote_Hist[a] && Acc_Max[a] > n1}| > |As|/2; // (13)
 
@@ -250,10 +256,14 @@ module PaxosSingle {
             // history variable update
             match msg {
               case Proposal(no) =>
-                Prop_Resp_Hist := Prop_Resp_Hist[a := Prop_Resp_Hist[a] + {(no, n, v)}];
-                Joined_Rnd := Joined_Rnd[a := Joined_Rnd[a] + {n}];
+                if Acc_Max[a] < no {
+                  Prop_Resp_Hist := Prop_Resp_Hist[a := Prop_Resp_Hist[a] + {(no, n, v)}];
+                  Joined_Rnd := Joined_Rnd[a := Joined_Rnd[a] + {n}];
+                }
               case Accept(no,val) =>
-                Vote_Hist := Vote_Hist[a := Vote_Hist[a] + {(n,v)}];
+                if Acc_Max[a] <= no {
+                  Vote_Hist := Vote_Hist[a := Vote_Hist[a] + {(n,v)}];
+                }
             }
           }
         }

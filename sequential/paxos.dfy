@@ -1,5 +1,11 @@
 module PaxosSingle {
 
+  function method len(s: set<nat>) : (l: nat)
+    ensures l == |s|
+  {
+    |s|
+  }
+
   function domain<U,V>(m: map<U,V>) : set<U>
 	  ensures domain(m) == set u : U | u in m :: u;
 	  ensures forall u :: u in domain(m) ==> u in m;
@@ -36,7 +42,7 @@ module PaxosSingle {
 
     // Set cardinalities
     var k : map<nat, nat> := map p | p in Ps :: 0;
-    var l : map<nat, nat> := map p | p in Ps :: |As|;
+    var l : map<nat, nat> := map p | p in Ps :: len(As);
     var m : map<nat, nat> := map p | p in Ps :: 0;
 
     var WL_Ps := Ps;
@@ -48,12 +54,11 @@ module PaxosSingle {
         && domain(Max) == As
         && domain(V) == As 
         && domain(V_T) == As
-        )
-    invariant
-        ( domain(WL_As) == Ps
+        && domain(WL_As) == Ps
         && domain(PC) == Ps
         && domain(X) == Ps
         && domain(X_T) == Ps
+        && domain(T) == Ps
         && domain(HO) == Ps
         && domain(k) == Ps
         && domain(l) == Ps
@@ -83,16 +88,6 @@ module PaxosSingle {
       var p0 := *;
       assume p0 in WL_Ps;
 
-      var p1 := *;
-      assume p1 in Ps;
-
-      // var a1 := *;
-      // assume a1 in As;
-      // assume (Ready[p0] && k[p0] + l[p0] > |As|/2 && Ready[p1]) ==> (X_T[p1] >= T[p0] && X_T[p1] >= 0);
-
-      // assume (forall p :: p in Ps ==> T[p] == T[p0] ==> p == p0);
-      // assume (forall p1 :: p1 in Ps ==> l[p0] > |As|/2 ==> (!Ready[p1] || T[p1] < T[p0]));
-
       var a2 := *;
       assume a2 in As;
       assume X_T[p0] >= 0 ==> (X[p0] == V[a2] && X_T[p0] == V_T[a2]);
@@ -100,11 +95,9 @@ module PaxosSingle {
       
       assume (forall p :: p in Ps ==> T[p] == T[p0] <==> p == p0);
 
-      assume (forall p :: l[p] > |As|/2 ==> (!Ready[p0] || T[p0] < T[p]));
+      assume (forall p :: p in Ps && l[p] > |As|/2 ==> (!Ready[p0] || T[p0] < T[p]));
       assume (forall p :: p in Ps ==> 
         (Ready[p] && k[p]+l[p] > |As|/2 && Ready[p0]) ==> (X_T[p0] >= T[p] && X_T[p0] >= 0));
-
-      
 
       // Prepare phase loop
       if (PC[p0] == P0)
