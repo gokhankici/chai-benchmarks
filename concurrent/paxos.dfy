@@ -183,6 +183,7 @@ module PaxosSingle {
     // ----------------------------------------------------------------------
 
     // invariant forall a,n,v :: a in As && (n,v) in Vote_Hist[a] ==> (n,v) in Acc_Msg_Hist; // (6)
+    // invariant forall p,a,n,v :: p in Ps && (a,Value(n,v)) in Prop_Soup[p] ==> ((exists n' :: (n', n, v) in Prop_Resp_Hist[a]) || (n,v) in Vote_Hist[a]);
 
     // ----------------------------------------------------------------------
 
@@ -278,6 +279,14 @@ module PaxosSingle {
             var v := Acc_V[a];
 
             Prop_Soup := Prop_Soup[pid := Prop_Soup[pid] + multiset{(a,Value(n, v))}];
+
+            // history variable update
+            match msg {
+              case Proposal(no) =>
+                Prop_Resp_Hist := Prop_Resp_Hist[a := Prop_Resp_Hist[a] + {(no, n, v)}];
+              case Accept(_,_) =>
+                Vote_Hist := Vote_Hist[a := Vote_Hist[a] + {(n,v)}];
+            }
           }
         }
       }
@@ -338,8 +347,8 @@ module PaxosSingle {
 
               match msg {
                 case Value(no, val) =>
-                  // history variable update
-                  Prop_Resp_Hist := Prop_Resp_Hist[pid := Prop_Resp_Hist[pid] + {(n, no, val)}];
+                  // FIXME: remember history variable update
+                  assume (n,no,val) in Prop_Resp_Hist[pid];
 
                   var max := Prop_Max[p];
                   if no > max {
@@ -425,8 +434,8 @@ module PaxosSingle {
 
               match msg {
                 case Value(no, val) =>
-                  // history update
-                  Vote_Hist := Vote_Hist[pid := Vote_Hist[pid] + {(no,val)}];
+                  // FIXME: remember history variable update
+                  assume (no,val) in Vote_Hist[pid];
 
                   var n := Prop_N[p];
                   if no == n {
