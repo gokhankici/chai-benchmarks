@@ -183,7 +183,7 @@ module PaxosSingle {
     // ----------------------------------------------------------------------
 
     // invariant forall a,n,v :: a in As && (n,v) in Vote_Hist[a] ==> (n,v) in Acc_Msg_Hist; // (6)
-    // invariant forall p,a,n,v :: p in Ps && (a,Value(n,v)) in Prop_Soup[p] ==> ((exists n' :: (n', n, v) in Prop_Resp_Hist[a]) || (n,v) in Vote_Hist[a]);
+    free invariant forall p,a,n,v :: p in Ps && (a,Value(n,v)) in Prop_Soup[p] ==> ((exists msg :: msg in Prop_Resp_Hist[a] && msg.1 == n && msg.2 == v) || (n,v) in Vote_Hist[a]);
 
     // ----------------------------------------------------------------------
 
