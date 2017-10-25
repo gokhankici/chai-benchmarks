@@ -172,42 +172,55 @@ module PaxosSingle {
 
     // ----------------------------------------------------------------------
 
-    free invariant forall n,v1,v2 :: (n,v1) in Acc_Msg_Hist && (n,v2) in Acc_Msg_Hist ==> v1 == v2; // (5)
+    // invariant forall n,v1,v2 :: (n,v1) in Acc_Msg_Hist && (n,v2) in Acc_Msg_Hist ==> v1 == v2; // (5)
     free invariant forall p1,p2 :: p1 in Ps && p2 in Ps ==> (p1 == p2 <==> Prop_N[p1] == Prop_N[p2]);
     free invariant forall p :: p in Ps ==> Prop_N[p] == old(Prop_N[p]);
     free invariant forall p :: p in Ps && Prop_PC[p] !in {P0, P1, P2} ==> Prop_V[p] == old(Prop_V[p]);
     free invariant forall p :: p in Ps && old(Prop_PC[p]) !in {P0, P1, P2} ==> Prop_V[p] == old(Prop_V[p]);
-    free invariant forall p,n,v :: p in Ps && (n,v) in Acc_Msg_Hist && n == Prop_N[p] ==> Prop_PC[p] !in {P0, P1, P2} && v == Prop_V[p];
+    free invariant forall a,p,n,v :: a in As && (p,Accept(n,v)) in Acc_Soup[a] ==> Prop_PC[p] !in {P0, P1, P2};
+    invariant forall n,v :: (n,v) in Acc_Msg_Hist ==> exists p :: p in Ps && n == Prop_N[p] && Prop_PC[p] !in {P0, P1, P2};
 
     // ----------------------------------------------------------------------
 
     // invariant forall a,n,v :: a in As && (n,v) in Vote_Hist[a] ==> (n,v) in Acc_Msg_Hist; // (6)
 
-    free invariant forall a,p,n,v :: a in As && (p, Accept(n,v)) in Acc_Soup[a] ==> (n,v) in Acc_Msg_Hist;
-    // invariant forall a,n,v :: a in As && (n,v) in Vote_Hist[a] ==> true;
-
     // ----------------------------------------------------------------------
 
     // invariant forall p,n:int,v:int :: p in Ps && Prop_Decided[p] && n == Prop_N[p] && v == Prop_V[p] ==> |{set a | a in As && (n,v) in Vote_Hist[a] :: a}| > |As|/2; // (7)
 
+    // ----------------------------------------------------------------------
+
     // invariant forall a,n,n',v,v' :: a in As && (n,-1,v) in Prop_Resp_Hist[a] && n' < n ==> (n',v') !in Vote_Hist[a]; // (8)
+
+    // ----------------------------------------------------------------------
+
     // invariant forall a,n,n',v :: a in As && (n,n',v) in Prop_Resp_Hist[a] && n' > 0 ==> n' < n && (n',v) in Vote_Hist[a]; // (9)
+
+    // ----------------------------------------------------------------------
+
     // invariant forall a,n,n',n'',v,v' :: a in As && (n,n',v) in Prop_Resp_Hist[a] && n' > 0 && n' < n'' < n ==> (n'',v') !in Vote_Hist[a]; // (10)
 
     // ----------------------------------------------------------------------
 
     // invariant forall a,vote :: a in As && vote in Vote_Hist[a]==> vote.0 > 0; // (11)
-    free invariant forall a,no,pid :: a in As && (pid,Proposal(no)) in Acc_Soup[a] ==> no > 0;
-    free invariant forall a,no,val,pid :: a in As && (pid,Accept(no,val)) in Acc_Soup[a] ==> no > 0;
 
     // ----------------------------------------------------------------------
 
     // invariant forall n1,n2,v1,v2 :: (n1,v1) in Acc_Msg_Hist && n1 < n2 && v1 != v2 ==> |{set a | a in As && (n1,v1) !in Vote_Hist[a] && Acc_Max[a] > n1}| > |As|/2; // (13)
 
+    // ----------------------------------------------------------------------
+
     // invariant forall a,n1,n2 :: n1 < n2 && a in As && n2 in Joined_Rnd[a] ==> n1 < Acc_Max[a]; // (14)
+
+    // ----------------------------------------------------------------------
+
     // invariant forall a,n,n',v :: a in As && (n,n',v) in Prop_Resp_Hist[a] ==> n in Joined_Rnd[a]; // (15)
 
+    // ----------------------------------------------------------------------
+
     // invariant forall p1,p2 :: p1 in Ps && p2 in Ps && Prop_Decided[p1] && Prop_Decided[p2] ==> Prop_V[p1] == Prop_V[p2]; // (4)
+
+    // ----------------------------------------------------------------------
 
     decreases *
     {
@@ -242,10 +255,17 @@ module PaxosSingle {
 
           match msg {
             case Proposal(no) =>
+              // history update
+              Prop_No_Hist := Prop_No_Hist + {no};
+
               if Acc_Max[a] < no {
                 Acc_Max := Acc_Max[a := no];
+                Joined_Rnd := Joined_Rnd[a := Joined_Rnd[a] + {no}];
               }
             case Accept(no,val) =>
+              // history update
+              Acc_Msg_Hist := Acc_Msg_Hist + {(no,val)};
+
               if Acc_Max[a] <= no {
                 Acc_V  := Acc_V [a := val];
                 Acc_N  := Acc_N [a := no];
@@ -258,19 +278,6 @@ module PaxosSingle {
             var v := Acc_V[a];
 
             Prop_Soup := Prop_Soup[pid := Prop_Soup[pid] + multiset{(a,Value(n, v))}];
-
-            // history variable update
-            match msg {
-              case Proposal(no) =>
-                if Acc_Max[a] < no {
-                  Prop_Resp_Hist := Prop_Resp_Hist[a := Prop_Resp_Hist[a] + {(no, n, v)}];
-                  Joined_Rnd := Joined_Rnd[a := Joined_Rnd[a] + {n}];
-                }
-              case Accept(no,val) =>
-                if Acc_Max[a] <= no {
-                  Vote_Hist := Vote_Hist[a := Vote_Hist[a] + {(n,v)}];
-                }
-            }
           }
         }
       }
@@ -302,7 +309,6 @@ module PaxosSingle {
           var n := Prop_N[p];
 
           Acc_Soup := Acc_Soup[a := Acc_Soup[a] + multiset{(p, Proposal(n))}];
-          Prop_No_Hist := Prop_No_Hist + {n};
 
           Prop_PC := Prop_PC[p := P2];
 
@@ -320,6 +326,7 @@ module PaxosSingle {
              }
            */
           var a := Prop_a[p];
+          var n := Prop_N[p];
 
           if * {
             if Prop_Soup[p] != multiset{} {
@@ -331,6 +338,9 @@ module PaxosSingle {
 
               match msg {
                 case Value(no, val) =>
+                  // history variable update
+                  Prop_Resp_Hist := Prop_Resp_Hist[pid := Prop_Resp_Hist[pid] + {(n, no, val)}];
+
                   var max := Prop_Max[p];
                   if no > max {
                     Prop_Max := Prop_Max[p := no];
@@ -390,9 +400,6 @@ module PaxosSingle {
 
           Acc_Soup := Acc_Soup[a := Acc_Soup[a] + multiset{(p, Accept(n,v))}];
 
-          // history update
-          Acc_Msg_Hist := Acc_Msg_Hist + {(n,v)};
-
           Prop_PC := Prop_PC[p := P6];
 
         } else if Prop_PC[p] == P6 {
@@ -418,6 +425,9 @@ module PaxosSingle {
 
               match msg {
                 case Value(no, val) =>
+                  // history update
+                  Vote_Hist := Vote_Hist[pid := Vote_Hist[pid] + {(no,val)}];
+
                   var n := Prop_N[p];
                   if no == n {
                     Prop_HO := Prop_HO[p := Prop_HO[p] + 1];
