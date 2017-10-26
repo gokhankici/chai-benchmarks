@@ -19,8 +19,13 @@ module PaxosSingle {
       Proposal(no: int)
     | Accept(no: int, val: int)
 
-  datatype Msg_Prop =
-      Value(no: int, val: int)
+  datatype Msg_Phase =
+      OneA
+    | OneB
+    | TwoA
+    | TwoB
+
+  datatype Msg_Prop = Value(no: int, val: int, phase: Msg_Phase)
 
   method PaxosSingle
     ( Ps : set<nat>
@@ -102,6 +107,8 @@ module PaxosSingle {
     var Acc_Msg_Hist   : set<(int,int)>               := {};
     var Vote_Hist      : map<nat, set<(int,int)>>     := map a | a in As :: {};
 
+    var Prop_Soup_Hist : map<nat, set<(nat,Msg_Prop)>> := map p | p in Ps :: {};
+
     // #########################################################################
     // Other history variables
     // #########################################################################
@@ -130,10 +137,10 @@ module PaxosSingle {
     var WL_main := Ps + As;
 
     while WL_main != {}
-    free invariant Ps == old(Ps);
-    free invariant As == old(As);
-    free invariant WL_main <= Ps + As;
-    free invariant
+    invariant Ps == old(Ps);
+    invariant As == old(As);
+    invariant WL_main <= Ps + As;
+    invariant
         ( domain(Acc_Ns)         == As
         && domain(Acc_Max)        == As
         && domain(Acc_N)          == As
@@ -159,32 +166,38 @@ module PaxosSingle {
         && domain(Prop_Resp_Hist) == As
         && domain(Vote_Hist)      == As
         && domain(Joined_Rnd)     == As
+        && domain(Prop_Soup_Hist) == Ps
         );
-    free invariant forall a:nat,pid:nat,msg:Msg_Acc :: a in As && (pid,msg) in Acc_Soup[a] ==> pid in Ps;
-    free invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup[p] ==> pid in As;
-    free invariant forall p,a :: p in Ps && a == Prop_a[p] ==> a in As;
-    free invariant forall p :: p in Ps ==> Prop_WL[p] <= As && Prop_WL2[p] <= As;
+    invariant forall a:nat,pid:nat,msg:Msg_Acc :: a in As && (pid,msg) in Acc_Soup[a] ==> pid in Ps;
+    invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup[p] ==> pid in As;
+    invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup_Hist[p] ==> pid in As;
+    invariant forall p,a :: p in Ps && a == Prop_a[p] ==> a in As;
+    invariant forall p :: p in Ps ==> Prop_WL[p] <= As && Prop_WL2[p] <= As;
 
     // ----------------------------------------------------------------------
 
     // sequencing
-    free invariant forall p :: p in Ps && old(Prop_PC[p]) !in {P0, P1, P2} ==> Prop_PC[p] !in {P0, P1, P2};
+    invariant forall p :: p in Ps && old(Prop_PC[p]) !in {P0, P1, P2} ==> Prop_PC[p] !in {P0, P1, P2};
 
     // ----------------------------------------------------------------------
 
-    free invariant forall n,v1,v2 :: (n,v1) in Acc_Msg_Hist && (n,v2) in Acc_Msg_Hist ==> v1 == v2; // (5)
-    free invariant forall p1,p2 :: p1 in Ps && p2 in Ps ==> (p1 == p2 <==> Prop_N[p1] == Prop_N[p2]);
-    free invariant forall p :: p in Ps ==> Prop_N[p] == old(Prop_N[p]);
-    free invariant forall p :: p in Ps && Prop_PC[p] !in {P0, P1, P2} ==> Prop_V[p] == old(Prop_V[p]);
-    free invariant forall p :: p in Ps && old(Prop_PC[p]) !in {P0, P1, P2} ==> Prop_V[p] == old(Prop_V[p]);
-    free invariant forall a,p,n,v :: a in As && (p,Accept(n,v)) in Acc_Soup[a] ==> Prop_PC[p] !in {P0, P1, P2} && n == Prop_N[p] && v == Prop_V[p];
-    free invariant forall n,v :: (n,v) in Acc_Msg_Hist ==> exists p :: p in Ps && n == Prop_N[p] && v == Prop_V[p] && Prop_PC[p] !in {P0, P1, P2};
+    invariant forall n,v1,v2 :: (n,v1) in Acc_Msg_Hist && (n,v2) in Acc_Msg_Hist ==> v1 == v2; // (5)
+    invariant forall p1,p2 :: p1 in Ps && p2 in Ps ==> (p1 == p2 <==> Prop_N[p1] == Prop_N[p2]);
+    invariant forall p :: p in Ps ==> Prop_N[p] == old(Prop_N[p]);
+    invariant forall p :: p in Ps && Prop_PC[p] !in {P0, P1, P2} ==> Prop_V[p] == old(Prop_V[p]);
+    invariant forall p :: p in Ps && old(Prop_PC[p]) !in {P0, P1, P2} ==> Prop_V[p] == old(Prop_V[p]);
+    invariant forall a,p,n,v :: a in As && (p,Accept(n,v)) in Acc_Soup[a] ==> Prop_PC[p] !in {P0, P1, P2} && n == Prop_N[p] && v == Prop_V[p];
+    invariant forall n,v :: (n,v) in Acc_Msg_Hist ==> exists p :: p in Ps && n == Prop_N[p] && v == Prop_V[p] && Prop_PC[p] !in {P0, P1, P2};
 
     // ----------------------------------------------------------------------
 
-    // invariant forall a,n,v :: a in As && (n,v) in Vote_Hist[a] ==> (n,v) in Acc_Msg_Hist; // (6)
-    free invariant forall p,a,n,v :: p in Ps && (a,Value(n,v)) in Prop_Soup[p] ==> ((exists msg :: msg in Prop_Resp_Hist[a] && msg.1 == n && msg.2 == v) || (n,v) in Vote_Hist[a]);
+    invariant forall a,n,v :: a in As && (n,v) in Vote_Hist[a] ==> (n,v) in Acc_Msg_Hist; // (6)
+    // // invariant forall p,a,n,v,phs :: p in Ps && (a,Value(n,v,phs)) in Prop_Soup[p] ==> ((exists msg :: msg in Prop_Resp_Hist[a] && msg.1 == n && msg.2 == v) || (n,v) in Vote_Hist[a]);
+    // invariant forall p,msg :: p in Ps && msg in Prop_Soup[p] ==> msg in Prop_Soup_Hist[p];
+    // invariant forall a,n,v :: a in As && (n,v) in Vote_Hist[a] ==> (exists p :: p in Ps && (a,Value(n,v,TwoB)) in Prop_Soup_Hist[p]);
 
+    // invariant forall p,a,msg,n,v :: p in Ps && (a,Value(n,v,TwoB)) in Prop_Soup_Hist[p] && Acc_Ns[a] != {} && n == Acc_N[a] && v == Acc_V[a] ==> (n,v) in Acc_Msg_Hist;
+      
     // ----------------------------------------------------------------------
 
     // invariant forall p,n:int,v:int :: p in Ps && Prop_Decided[p] && n == Prop_N[p] && v == Prop_V[p] ==> |{set a | a in As && (n,v) in Vote_Hist[a] :: a}| > |As|/2; // (7)
@@ -254,38 +267,47 @@ module PaxosSingle {
           assume (pid,msg) in Acc_Soup[a];
           Acc_Soup := Acc_Soup[a := Acc_Soup[a] - multiset{(pid,msg)}];
 
+          var phase;
+
           match msg {
             case Proposal(no) =>
-              // history update
-              Prop_No_Hist := Prop_No_Hist + {no};
-
               if Acc_Max[a] < no {
                 Acc_Max := Acc_Max[a := no];
                 Joined_Rnd := Joined_Rnd[a := Joined_Rnd[a] + {no}];
               }
-            case Accept(no,val) =>
-              // history update
-              Acc_Msg_Hist := Acc_Msg_Hist + {(no,val)};
 
+              // history update
+              Prop_No_Hist := Prop_No_Hist + {no};
+              phase := OneB;
+            case Accept(no,val) =>
               if Acc_Max[a] <= no {
                 Acc_V  := Acc_V [a := val];
                 Acc_N  := Acc_N [a := no];
                 Acc_Ns := Acc_Ns[a := Acc_Ns[a] + {no}];
               }
+
+              // history update
+              Acc_Msg_Hist := Acc_Msg_Hist + {(no,val)};
+              phase := TwoB;
           }
 
           if * {
             var n := Acc_N[a];
             var v := Acc_V[a];
 
-            Prop_Soup := Prop_Soup[pid := Prop_Soup[pid] + multiset{(a,Value(n, v))}];
+            var resp := (a, Value(n, v, phase));
+
+            Prop_Soup := Prop_Soup[pid := Prop_Soup[pid] + multiset{resp}];
+            Prop_Soup_Hist := Prop_Soup_Hist[pid := Prop_Soup_Hist[pid] + {resp}];
 
             // history variable update
             match msg {
               case Proposal(no) =>
                 Prop_Resp_Hist := Prop_Resp_Hist[a := Prop_Resp_Hist[a] + {(no, n, v)}];
-              case Accept(_,_) =>
-                Vote_Hist := Vote_Hist[a := Vote_Hist[a] + {(n,v)}];
+              case Accept(no,val) =>
+                if Acc_Max[a] <= no {
+                  Vote_Hist := Vote_Hist[a := Vote_Hist[a] + {(no,val)}];
+                }
             }
           }
         }
@@ -302,7 +324,6 @@ module PaxosSingle {
            */
           if Prop_WL[p] != {} {
             var a := *; assume a in Prop_WL[p];
-            assert a in As;
 
             Prop_a := Prop_a[p := a];
             Prop_WL := Prop_WL[p := Prop_WL[p] - {a}];
@@ -326,7 +347,7 @@ module PaxosSingle {
              match reply {
                None => 
                  return ()
-               Some Value(no, val) =>
+               Some Value(no, val, phase) =>
                  if no > max {
                    max <- no
                    v   <- val
@@ -346,7 +367,7 @@ module PaxosSingle {
               Prop_Soup := Prop_Soup[p := Prop_Soup[p] - multiset{(pid,msg)}];
 
               match msg {
-                case Value(no, val) =>
+                case Value(no, val, phase) =>
                   // FIXME: remember history variable update
                   assume (n,no,val) in Prop_Resp_Hist[pid];
 
@@ -391,7 +412,6 @@ module PaxosSingle {
            */
           if Prop_WL2[p] != {} {
             var a := *; assume a in Prop_WL2[p];
-            assert a in As;
 
             Prop_a := Prop_a[p := a];
             Prop_WL2 := Prop_WL2[p := Prop_WL2[p] - {a}];
@@ -416,7 +436,7 @@ module PaxosSingle {
              match reply {
                None => 
                  return ()
-               Some Value(no, val) =>
+               Some Value(no, val, phase) =>
                  if no = n {
                    ho <- ho + 1
                  }
@@ -433,7 +453,7 @@ module PaxosSingle {
               Prop_Soup := Prop_Soup[p := Prop_Soup[p] - multiset{(pid,msg)}];
 
               match msg {
-                case Value(no, val) =>
+                case Value(no, val, phase) =>
                   // FIXME: remember history variable update
                   assume (no,val) in Vote_Hist[pid];
 
