@@ -120,27 +120,28 @@ module PaxosSingle {
     // Set cardinalities
     // #########################################################################
 
-    // k[p] := #{a in A | p.n in a.ns}
-    // i.e. number of acceptors have accepted p's proposal
-    var k : map<nat, nat> := map p | p in Ps :: 0;
+    // // k[p] := #{a in A | p.n in a.ns}
+    // // i.e. number of acceptors have accepted p's proposal
+    // var k : map<nat, nat> := map p | p in Ps :: 0;
 
-    // l[p] := #{a in A | p.n !in a.ns && a.max <= p.n}
-    // i.e. number of acceptors may accept p's proposal
-    var l : map<nat, nat> := map p | p in Ps :: len(As);
+    // // l[p] := #{a in A | p.n !in a.ns && a.max <= p.n}
+    // // i.e. number of acceptors may accept p's proposal
+    // var l : map<nat, nat> := map p | p in Ps :: len(As);
 
-    // m[p] := #{a in A | p.n !in a.ns && a.max > p.n}
-    // i.e. number of acceptors will never accept p's proposal
-    var m : map<nat, nat> := map p | p in Ps :: 0;
+    // // m[p] := #{a in A | p.n !in a.ns && a.max > p.n}
+    // // i.e. number of acceptors will never accept p's proposal
+    // var m : map<nat, nat> := map p | p in Ps :: 0;
+
+    // q1[p] : #{a in As | (p.n,p.v) in Vote_Hist[a]}
+    var q1 : map<nat,nat> := map p | p in Ps :: 0;
 
     // #########################################################################
 
     var WL_main := Ps + As;
 
     while WL_main != {}
-    invariant Ps == old(Ps);
-    invariant As == old(As);
-    invariant WL_main <= Ps + As;
-    invariant
+    free invariant WL_main <= Ps + As;
+    free invariant
         ( domain(Acc_Ns)         == As
         && domain(Acc_Max)        == As
         && domain(Acc_N)          == As
@@ -159,48 +160,33 @@ module PaxosSingle {
         && domain(Prop_WL2)       == Ps
         && domain(Prop_a)         == Ps
 
-        && domain(k)              == Ps
-        && domain(l)              == Ps
-        && domain(m)              == Ps
+        && domain(q1)             == Ps
 
         && domain(Prop_Resp_Hist) == As
         && domain(Vote_Hist)      == As
         && domain(Joined_Rnd)     == As
         && domain(Prop_Soup_Hist) == Ps
         );
-    invariant forall a:nat,pid:nat,msg:Msg_Acc :: a in As && (pid,msg) in Acc_Soup[a] ==> pid in Ps;
-    invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup[p] ==> pid in As;
-    invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup_Hist[p] ==> pid in As;
-    invariant forall p,a :: p in Ps && a == Prop_a[p] ==> a in As;
-    invariant forall p :: p in Ps ==> Prop_WL[p] <= As && Prop_WL2[p] <= As;
+    free invariant forall a:nat,pid:nat,msg:Msg_Acc :: a in As && (pid,msg) in Acc_Soup[a] ==> pid in Ps;
+    free invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup[p] ==> pid in As;
+    free invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup_Hist[p] ==> pid in As;
+    free invariant forall p,a :: p in Ps && a == Prop_a[p] ==> a in As;
+    free invariant forall p :: p in Ps ==> Prop_WL[p] <= As && Prop_WL2[p] <= As;
 
     // ----------------------------------------------------------------------
 
-    // sequencing
-    invariant forall p :: p in Ps && old(Prop_PC[p]) !in {P0, P1, P2} ==> Prop_PC[p] !in {P0, P1, P2};
+    free invariant forall n,v1,v2 :: (n,v1) in Acc_Msg_Hist && (n,v2) in Acc_Msg_Hist ==> v1 == v2; // (5)
+    free invariant forall a,p,n,v :: a in As && (p,Accept(n,v)) in Acc_Soup[a] ==> Prop_PC[p] !in {P0, P1, P2} && n == Prop_N[p] && v == Prop_V[p];
+    free invariant forall n,v :: (n,v) in Acc_Msg_Hist ==> exists p :: p in Ps && n == Prop_N[p] && v == Prop_V[p] && Prop_PC[p] !in {P0, P1, P2};
 
     // ----------------------------------------------------------------------
 
-    invariant forall n,v1,v2 :: (n,v1) in Acc_Msg_Hist && (n,v2) in Acc_Msg_Hist ==> v1 == v2; // (5)
-    invariant forall p1,p2 :: p1 in Ps && p2 in Ps ==> (p1 == p2 <==> Prop_N[p1] == Prop_N[p2]);
-    invariant forall p :: p in Ps ==> Prop_N[p] == old(Prop_N[p]);
-    invariant forall p :: p in Ps && Prop_PC[p] !in {P0, P1, P2} ==> Prop_V[p] == old(Prop_V[p]);
-    invariant forall p :: p in Ps && old(Prop_PC[p]) !in {P0, P1, P2} ==> Prop_V[p] == old(Prop_V[p]);
-    invariant forall a,p,n,v :: a in As && (p,Accept(n,v)) in Acc_Soup[a] ==> Prop_PC[p] !in {P0, P1, P2} && n == Prop_N[p] && v == Prop_V[p];
-    invariant forall n,v :: (n,v) in Acc_Msg_Hist ==> exists p :: p in Ps && n == Prop_N[p] && v == Prop_V[p] && Prop_PC[p] !in {P0, P1, P2};
-
-    // ----------------------------------------------------------------------
-
-    invariant forall a,n,v :: a in As && (n,v) in Vote_Hist[a] ==> (n,v) in Acc_Msg_Hist; // (6)
-    // // invariant forall p,a,n,v,phs :: p in Ps && (a,Value(n,v,phs)) in Prop_Soup[p] ==> ((exists msg :: msg in Prop_Resp_Hist[a] && msg.1 == n && msg.2 == v) || (n,v) in Vote_Hist[a]);
-    // invariant forall p,msg :: p in Ps && msg in Prop_Soup[p] ==> msg in Prop_Soup_Hist[p];
-    // invariant forall a,n,v :: a in As && (n,v) in Vote_Hist[a] ==> (exists p :: p in Ps && (a,Value(n,v,TwoB)) in Prop_Soup_Hist[p]);
-
-    // invariant forall p,a,msg,n,v :: p in Ps && (a,Value(n,v,TwoB)) in Prop_Soup_Hist[p] && Acc_Ns[a] != {} && n == Acc_N[a] && v == Acc_V[a] ==> (n,v) in Acc_Msg_Hist;
+    free invariant forall a,n,v :: a in As && (n,v) in Vote_Hist[a] ==> (n,v) in Acc_Msg_Hist; // (6)
       
     // ----------------------------------------------------------------------
+    // ...HERE...
 
-    // invariant forall p,n:int,v:int :: p in Ps && Prop_Decided[p] && n == Prop_N[p] && v == Prop_V[p] ==> |{set a | a in As && (n,v) in Vote_Hist[a] :: a}| > |As|/2; // (7)
+    // invariant forall p :: p in Ps && Prop_Decided[p] ==> q1[p] > |As|/2; // (7)
 
     // ----------------------------------------------------------------------
 
@@ -307,6 +293,7 @@ module PaxosSingle {
               case Accept(no,val) =>
                 if Acc_Max[a] <= no {
                   Vote_Hist := Vote_Hist[a := Vote_Hist[a] + {(no,val)}];
+                  q1 := q1[pid := q1[pid] + 1];
                 }
             }
           }
