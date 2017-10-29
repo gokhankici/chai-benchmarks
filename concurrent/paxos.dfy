@@ -56,6 +56,7 @@ module PaxosSingle {
 
     // heard of count
     var Prop_HO       : map<nat, nat>  := map p | p in Ps :: 0;
+    var Prop_HO2      : map<nat, nat>  := map p | p in Ps :: 0;
 
     // is proposer in the second phase ?
     var Prop_Ready    : map<nat, bool> := map p | p in Ps :: false;
@@ -122,6 +123,11 @@ module PaxosSingle {
     // i.e. number of acceptors have accepted p's proposal
     var k : map<nat, nat> := map p | p in Ps :: 0;
 
+    // k_pending[p] := #{(a,Value(no,val,TwoB)) in Prop_Soup[p] | no == p.n}
+    // i.e. number of messages in flight that will increment the `p.ho2` 
+    // variable upon receive
+    var k_pending : map<nat, nat> := map p | p in Ps :: 0;
+
     // l[p] := #{a in A | p.n !in a.ns && a.max <= p.n}
     // i.e. number of acceptors may accept p's proposal
     var l : map<nat, nat> := map p | p in Ps :: len(As);
@@ -135,8 +141,8 @@ module PaxosSingle {
     var WL_main := Ps + As;
 
     while WL_main != {}
-    free invariant WL_main <= Ps + As;
-    free invariant
+    invariant WL_main <= Ps + As;
+    invariant
         ( domain(Acc_Ns)         == As
         && domain(Acc_Max)        == As
         && domain(Acc_N)          == As
@@ -145,6 +151,7 @@ module PaxosSingle {
 
         && domain(Prop_Decided)   == Ps
         && domain(Prop_HO)        == Ps
+        && domain(Prop_HO2)       == Ps
         && domain(Prop_Max)       == Ps
         && domain(Prop_N)         == Ps
         && domain(Prop_PC)        == Ps
@@ -156,37 +163,39 @@ module PaxosSingle {
         && domain(Prop_a)         == Ps
 
         && domain(k)              == Ps
+        && domain(k_pending)      == Ps
         && domain(l)              == Ps
         && domain(m)              == Ps
 
-        && domain(OneB_Hist) == As
+        && domain(OneB_Hist)      == As
         && domain(TwoB_Hist)      == As
         && domain(Joined_Rnd)     == As
         && domain(Prop_Soup_Hist) == Ps
         );
-    free invariant forall a:nat,pid:nat,msg:Msg_Acc :: a in As && (pid,msg) in Acc_Soup[a] ==> pid in Ps;
-    free invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup[p] ==> pid in As;
-    free invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup_Hist[p] ==> pid in As;
-    free invariant forall p,a :: p in Ps && a == Prop_a[p] ==> a in As;
-    free invariant forall p :: p in Ps ==> Prop_WL[p] <= As && Prop_WL2[p] <= As;
+    invariant forall a:nat,pid:nat,msg:Msg_Acc :: a in As && (pid,msg) in Acc_Soup[a] ==> pid in Ps;
+    invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup[p] ==> pid in As;
+    invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup_Hist[p] ==> pid in As;
+    invariant forall p,a :: p in Ps && a == Prop_a[p] ==> a in As;
+    invariant forall p :: p in Ps ==> Prop_WL[p] <= As && Prop_WL2[p] <= As;
 
     // ----------------------------------------------------------------------
 
-    free invariant forall n,v1,v2 :: (n,v1) in TwoA_Hist && (n,v2) in TwoA_Hist ==> v1 == v2; // (5)
-    free invariant forall a,p,n,v :: a in As && (p,Accept(n,v)) in Acc_Soup[a] ==> Prop_PC[p] !in {P0, P1, P2} && n == Prop_N[p] && v == Prop_V[p];
-    free invariant forall n,v :: (n,v) in TwoA_Hist ==> exists p :: p in Ps && n == Prop_N[p] && v == Prop_V[p] && Prop_PC[p] !in {P0, P1, P2};
+    invariant forall n,v1,v2 :: (n,v1) in TwoA_Hist && (n,v2) in TwoA_Hist ==> v1 == v2; // (5)
+    invariant forall a,p,n,v :: a in As && (p,Accept(n,v)) in Acc_Soup[a] ==> Prop_PC[p] !in {P0, P1, P2} && n == Prop_N[p] && v == Prop_V[p];
+    invariant forall n,v :: (n,v) in TwoA_Hist ==> exists p :: p in Ps && n == Prop_N[p] && v == Prop_V[p] && Prop_PC[p] !in {P0, P1, P2};
 
     // ----------------------------------------------------------------------
 
-    free invariant forall a,n,v :: a in As && (n,v) in TwoB_Hist[a] ==> (n,v) in TwoA_Hist; // (6)
+    invariant forall a,n,v :: a in As && (n,v) in TwoB_Hist[a] ==> (n,v) in TwoA_Hist; // (6)
       
     // ----------------------------------------------------------------------
-    // ...HERE...
 
-    // invariant forall p :: p in Ps && Prop_Decided[p] ==> k[p] > |As|/2; // (7)
-    // invariant forall p :: p in Ps && Prop_PC[p] !in {P0, P1, P2} ==> Prop_HO[p] <= k[p];
+    invariant forall p :: p in Ps && Prop_Decided[p] ==> k[p] > |As|/2; // (7)
+    invariant forall p :: p in Ps ==> Prop_HO2[p] + k_pending[p] <= k[p];
+    invariant forall p :: p in Ps ==> k_pending[p] >= 0;
 
     // ----------------------------------------------------------------------
+    // ...HERE...
 
     // invariant forall a,n,n',v,v' :: a in As && (n,-1,v) in OneB_Hist[a] && n' < n ==> (n',v') !in TwoB_Hist[a]; // (8)
 
@@ -253,14 +262,19 @@ module PaxosSingle {
           Acc_Soup := Acc_Soup[a := Acc_Soup[a] - multiset{(pid,msg)}];
 
           var phase;
+          var old_max := Acc_Max[a];
 
           match msg {
             case Proposal(no) =>
               if Acc_Max[a] < no {
                 var onea_wl := Ps;
                 while onea_wl != {}
+                invariant onea_wl <= Ps;
+                invariant domain(l) == Ps && domain(m) == Ps;
+                decreases |onea_wl|
                 {
                   var p' := *; assume p' in onea_wl;
+
                   if Prop_N[p'] !in Acc_Ns[a] &&
                     Prop_N[p'] >= Acc_Max[a] &&
                     Prop_N[p'] < no &&
@@ -279,7 +293,7 @@ module PaxosSingle {
               OneA_Hist := OneA_Hist + {no};
               phase := OneB;
             case Accept(no,val) =>
-              if Acc_Max[a] <= no {
+              if old_max <= no {
                 Acc_V  := Acc_V [a := val];
                 Acc_N  := Acc_N [a := no];
                 Acc_Ns := Acc_Ns[a := Acc_Ns[a] + {no}];
@@ -308,8 +322,9 @@ module PaxosSingle {
               case Proposal(no) =>
                 OneB_Hist := OneB_Hist[a := OneB_Hist[a] + {(no, n, v)}];
               case Accept(no,val) =>
-                if Acc_Max[a] <= no {
+                if old_max <= no {
                   TwoB_Hist := TwoB_Hist[a := TwoB_Hist[a] + {(no,val)}];
+                  k_pending := k_pending[pid := k_pending[pid] + 1];
                 }
             }
           }
@@ -350,7 +365,7 @@ module PaxosSingle {
              match reply {
                None => 
                  return ()
-               Some Value(no, val, phase) =>
+               Some Value(no, val, OneB) =>
                  if no > max {
                    max <- no
                    v   <- val
@@ -370,7 +385,7 @@ module PaxosSingle {
               Prop_Soup := Prop_Soup[p := Prop_Soup[p] - multiset{(pid,msg)}];
 
               match msg {
-                case Value(no, val, phase) =>
+                case Value(no, val, OneB) =>
                   var max := Prop_Max[p];
                   if no > max {
                     Prop_Max := Prop_Max[p := no];
@@ -389,7 +404,6 @@ module PaxosSingle {
 
         } else if Prop_PC[p] == P3 {
           /* if 2 x ho > |A| {
-               ho <- 0
                ready <- true
                <P4>
              }
@@ -397,7 +411,6 @@ module PaxosSingle {
            */
           var ho := Prop_HO[p];
           if ho * 2 > |As| {
-            Prop_HO    := Prop_HO   [p := 0];
             Prop_Ready := Prop_Ready[p := true];
             Prop_PC    := Prop_PC   [p := P4];
           } else {
@@ -436,9 +449,9 @@ module PaxosSingle {
              match reply {
                None => 
                  return ()
-               Some Value(no, val, phase) =>
+               Some Value(no, val, TwoB) =>
                  if no = n {
-                   ho <- ho + 1
+                   ho2 <- ho2 + 1
                  }
              }
            */
@@ -453,10 +466,12 @@ module PaxosSingle {
               Prop_Soup := Prop_Soup[p := Prop_Soup[p] - multiset{(pid,msg)}];
 
               match msg {
-                case Value(no, val, phase) =>
+                case Value(no, val, TwoB) =>
                   var n := Prop_N[p];
                   if no == n {
-                    Prop_HO := Prop_HO[p := Prop_HO[p] + 1];
+                    Prop_HO2 := Prop_HO2[p := Prop_HO2[p] + 1];
+                    assume k_pending[p] > 0;
+                    k_pending := k_pending[p := k_pending[p] - 1];
                   }
               }
 
@@ -469,12 +484,12 @@ module PaxosSingle {
           }
 
         } else if Prop_PC[p] == P7 {
-          /* if ho * 2 > |A| {
+          /* if ho2 * 2 > |A| {
                decided <- true
              }
            */
-          var ho := Prop_HO[p];
-          if ho * 2 > |As| {
+          var ho2 := Prop_HO2[p];
+          if ho2 * 2 > |As| {
             Prop_Decided := Prop_Decided[p := true];
           }
           WL_main := WL_main - {p};
