@@ -141,8 +141,8 @@ module PaxosSingle {
     var WL_main := Ps + As;
 
     while WL_main != {}
-    invariant WL_main <= Ps + As;
-    invariant
+    free invariant WL_main <= Ps + As;
+    free invariant
         ( domain(Acc_Ns)         == As
         && domain(Acc_Max)        == As
         && domain(Acc_N)          == As
@@ -172,27 +172,27 @@ module PaxosSingle {
         && domain(Joined_Rnd)     == As
         && domain(Prop_Soup_Hist) == Ps
         );
-    invariant forall a:nat,pid:nat,msg:Msg_Acc :: a in As && (pid,msg) in Acc_Soup[a] ==> pid in Ps;
-    invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup[p] ==> pid in As;
-    invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup_Hist[p] ==> pid in As;
-    invariant forall p,a :: p in Ps && a == Prop_a[p] ==> a in As;
-    invariant forall p :: p in Ps ==> Prop_WL[p] <= As && Prop_WL2[p] <= As;
+    free invariant forall a:nat,pid:nat,msg:Msg_Acc :: a in As && (pid,msg) in Acc_Soup[a] ==> pid in Ps;
+    free invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup[p] ==> pid in As;
+    free invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup_Hist[p] ==> pid in As;
+    free invariant forall p,a :: p in Ps && a == Prop_a[p] ==> a in As;
+    free invariant forall p :: p in Ps ==> Prop_WL[p] <= As && Prop_WL2[p] <= As;
 
     // ----------------------------------------------------------------------
 
-    invariant forall n,v1,v2 :: (n,v1) in TwoA_Hist && (n,v2) in TwoA_Hist ==> v1 == v2; // (5)
-    invariant forall a,p,n,v :: a in As && (p,Accept(n,v)) in Acc_Soup[a] ==> Prop_PC[p] !in {P0, P1, P2} && n == Prop_N[p] && v == Prop_V[p];
-    invariant forall n,v :: (n,v) in TwoA_Hist ==> exists p :: p in Ps && n == Prop_N[p] && v == Prop_V[p] && Prop_PC[p] !in {P0, P1, P2};
+    free invariant forall n,v1,v2 :: (n,v1) in TwoA_Hist && (n,v2) in TwoA_Hist ==> v1 == v2; // (5)
+    free invariant forall a,p,n,v :: a in As && (p,Accept(n,v)) in Acc_Soup[a] ==> Prop_PC[p] !in {P0, P1, P2} && n == Prop_N[p] && v == Prop_V[p];
+    free invariant forall n,v :: (n,v) in TwoA_Hist ==> exists p :: p in Ps && n == Prop_N[p] && v == Prop_V[p] && Prop_PC[p] !in {P0, P1, P2};
 
     // ----------------------------------------------------------------------
 
-    invariant forall a,n,v :: a in As && (n,v) in TwoB_Hist[a] ==> (n,v) in TwoA_Hist; // (6)
+    free invariant forall a,n,v :: a in As && (n,v) in TwoB_Hist[a] ==> (n,v) in TwoA_Hist; // (6)
       
     // ----------------------------------------------------------------------
 
-    invariant forall p :: p in Ps && Prop_Decided[p] ==> k[p] > |As|/2; // (7)
-    invariant forall p :: p in Ps ==> Prop_HO2[p] + k_pending[p] <= k[p];
-    invariant forall p :: p in Ps ==> k_pending[p] >= 0;
+    free invariant forall p :: p in Ps && Prop_Decided[p] ==> k[p] > |As|/2; // (7)
+    free invariant forall p :: p in Ps ==> Prop_HO2[p] + k_pending[p] <= k[p];
+    free invariant forall p :: p in Ps ==> k_pending[p] >= 0;
 
     // ----------------------------------------------------------------------
     // ...HERE...
