@@ -16,7 +16,7 @@ module PaxosSingle {
   datatype Loc = P0 | P1 | P2 | P3 | P4 | P5 | P6 | P7
 
   datatype Msg_Acc =
-      Proposal(no: int)
+      Prepare(no: int)
     | Accept(no: int, val: int)
 
   datatype Msg_Phase =
@@ -206,7 +206,7 @@ module PaxosSingle {
 
     // ----------------------------------------------------------------------
 
-    free invariant forall a,msg,n :: a in As && msg in Acc_Soup[a] && msg.1 == Proposal(n) ==> n >= 0;
+    free invariant forall a,msg,n :: a in As && msg in Acc_Soup[a] && msg.1 == Prepare(n) ==> n >= 0;
     free invariant forall n :: n in OneA_Hist ==> n >= 0;
 
     // ...HERE...
@@ -250,7 +250,7 @@ module PaxosSingle {
         /* while true
              (pid, msg) <- recv
              match msg {
-               Proposal(no) => 
+               Prepare(no) =>
                  if max < no {
                    max <- no
                  }
@@ -275,7 +275,7 @@ module PaxosSingle {
           var old_max := Acc_Max[a];
 
           match msg {
-            case Proposal(no) =>
+            case Prepare(no) =>
               if Acc_Max[a] < no {
                 var onea_wl := Ps;
                 while onea_wl != {}
@@ -325,7 +325,7 @@ module PaxosSingle {
 
             // history variable update
             match msg {
-              case Proposal(no) =>
+              case Prepare(no) =>
                 OneB_Hist := OneB_Hist[a := OneB_Hist[a] + {(no, n, v)}];
               case Accept(no,val) =>
                 if old_max <= no {
@@ -357,13 +357,13 @@ module PaxosSingle {
           }
 
         } else if Prop_PC[p] == P1 {
-          /* send a (p, Proposal(n))
+          /* send a (p, Prepare(n))
            */
           var a := Prop_a[p];
           var n := Prop_N[p];
 
-          Acc_Soup := Acc_Soup[a := Acc_Soup[a] + multiset{(p, Proposal(n))}];
-          Acc_Soup_Hist := Acc_Soup_Hist[a := Acc_Soup_Hist[a] + {(p, Proposal(n))}];
+          Acc_Soup := Acc_Soup[a := Acc_Soup[a] + multiset{(p, Prepare(n))}];
+          Acc_Soup_Hist := Acc_Soup_Hist[a := Acc_Soup_Hist[a] + {(p, Prepare(n))}];
 
           // history update
           OneA_Hist := OneA_Hist + {n};
