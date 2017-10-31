@@ -97,6 +97,7 @@ module PaxosSingle {
     var Acc_Soup  : map<nat, multiset<(nat,Msg_Acc)>>  := map a | a in As :: multiset{};
     var Prop_Soup : map<nat, multiset<(nat,Msg_Prop)>> := map p | p in Ps :: multiset{};
 
+    var Acc_Soup_Hist  : map<nat, set<(nat,Msg_Acc)>>  := map a | a in As :: {}; 
     var Prop_Soup_Hist : map<nat, set<(nat,Msg_Prop)>> := map p | p in Ps :: {};
 
     // #########################################################################
@@ -170,7 +171,9 @@ module PaxosSingle {
         && domain(OneB_Hist)      == As
         && domain(TwoB_Hist)      == As
         && domain(Joined_Rnd)     == As
+
         && domain(Prop_Soup_Hist) == Ps
+        && domain(Acc_Soup_Hist)  == As
         );
     free invariant forall a:nat,pid:nat,msg:Msg_Acc :: a in As && (pid,msg) in Acc_Soup[a] ==> pid in Ps;
     free invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup[p] ==> pid in As;
@@ -186,7 +189,10 @@ module PaxosSingle {
 
     // ----------------------------------------------------------------------
 
-    // invariant forall a,n,v :: a in As && (n,v) in TwoB_Hist[a] ==> (n,v) in TwoA_Hist; // (6)
+    free invariant forall a,n,v :: a in As && (n,v) in TwoB_Hist[a] ==> (n,v) in TwoA_Hist; // (6)
+    free invariant forall a,msg :: a in As && msg in Acc_Soup[a] ==> msg in Acc_Soup_Hist[a];
+    free invariant forall a,n,v :: a in As && (n,v) in TwoB_Hist[a] ==> (exists p :: p in Ps && (p, Accept(n,v)) in Acc_Soup_Hist[a]);
+    free invariant forall a,n,v,p :: a in As && (p, Accept(n,v)) in Acc_Soup_Hist[a] ==> (n,v) in TwoA_Hist;
       
     // ----------------------------------------------------------------------
 
@@ -357,6 +363,7 @@ module PaxosSingle {
           var n := Prop_N[p];
 
           Acc_Soup := Acc_Soup[a := Acc_Soup[a] + multiset{(p, Proposal(n))}];
+          Acc_Soup_Hist := Acc_Soup_Hist[a := Acc_Soup_Hist[a] + {(p, Proposal(n))}];
 
           // history update
           OneA_Hist := OneA_Hist + {n};
@@ -444,6 +451,7 @@ module PaxosSingle {
           var v := Prop_V[p];
 
           Acc_Soup := Acc_Soup[a := Acc_Soup[a] + multiset{(p, Accept(n,v))}];
+          Acc_Soup_Hist := Acc_Soup_Hist[a := Acc_Soup_Hist[a] + {(p, Accept(n,v))}];
 
           // history update
           TwoA_Hist := TwoA_Hist + {(n,v)};
