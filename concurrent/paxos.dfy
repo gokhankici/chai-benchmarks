@@ -186,7 +186,7 @@ module PaxosSingle {
 
     // ----------------------------------------------------------------------
 
-    free invariant forall a,n,v :: a in As && (n,v) in TwoB_Hist[a] ==> (n,v) in TwoA_Hist; // (6)
+    // invariant forall a,n,v :: a in As && (n,v) in TwoB_Hist[a] ==> (n,v) in TwoA_Hist; // (6)
       
     // ----------------------------------------------------------------------
 
@@ -195,9 +195,17 @@ module PaxosSingle {
     free invariant forall p :: p in Ps ==> k_pending[p] >= 0;
 
     // ----------------------------------------------------------------------
+
+    free invariant forall a,vote :: a in As && vote in TwoB_Hist[a]==> vote.0 >= 0; // (11)
+
+    // ----------------------------------------------------------------------
+
+    free invariant forall a,msg,n :: a in As && msg in Acc_Soup[a] && msg.1 == Proposal(n) ==> n >= 0;
+    free invariant forall n :: n in OneA_Hist ==> n >= 0;
+
     // ...HERE...
 
-    // invariant forall a,n,n',v,v' :: a in As && (n,-1,v) in OneB_Hist[a] && n' < n ==> (n',v') !in TwoB_Hist[a]; // (8)
+    // invariant forall a,msg_1b,msg_2b :: a in As && msg_1b in OneB_Hist[a] && msg_2b in TwoB_Hist[a] && msg_1b.1 < 0 ==> msg_2b.0 >= msg_1b.0 // (8)
 
     // ----------------------------------------------------------------------
 
@@ -205,11 +213,7 @@ module PaxosSingle {
 
     // ----------------------------------------------------------------------
 
-    // invariant forall a,n,n',n'',v,v' :: a in As && (n,n',v) in OneB_Hist[a] && n' > 0 && n' < n'' < n ==> (n'',v') !in TwoB_Hist[a]; // (10)
-
-    // ----------------------------------------------------------------------
-
-    // invariant forall a,vote :: a in As && vote in TwoB_Hist[a]==> vote.0 > 0; // (11)
+    // invariant forall a,n,n',n'',v,v' :: a in As && (n,n',v) in OneB_Hist[a] && (n'',v') !in TwoB_Hist[a] && n' > 0 ==> ! (n' < n'' < n) ; // (10)
 
     // ----------------------------------------------------------------------
 
@@ -289,8 +293,6 @@ module PaxosSingle {
                 Joined_Rnd := Joined_Rnd[a := Joined_Rnd[a] + {no}];
               }
 
-              // history update
-              OneA_Hist := OneA_Hist + {no};
               phase := OneB;
             case Accept(no,val) =>
               if old_max <= no {
@@ -303,8 +305,6 @@ module PaxosSingle {
                 l := l[pid := l[pid] - 1];
               }
 
-              // history update
-              TwoA_Hist := TwoA_Hist + {(no,val)};
               phase := TwoB;
           }
 
@@ -357,6 +357,9 @@ module PaxosSingle {
           var n := Prop_N[p];
 
           Acc_Soup := Acc_Soup[a := Acc_Soup[a] + multiset{(p, Proposal(n))}];
+
+          // history update
+          OneA_Hist := OneA_Hist + {n};
 
           Prop_PC := Prop_PC[p := P2];
 
@@ -441,6 +444,9 @@ module PaxosSingle {
           var v := Prop_V[p];
 
           Acc_Soup := Acc_Soup[a := Acc_Soup[a] + multiset{(p, Accept(n,v))}];
+
+          // history update
+          TwoA_Hist := TwoA_Hist + {(n,v)};
 
           Prop_PC := Prop_PC[p := P6];
 
