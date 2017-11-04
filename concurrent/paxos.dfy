@@ -23,7 +23,7 @@ module PaxosSingle {
       OneB
     | TwoB
 
-  datatype Msg_Prop = Value(no: int, val: int, phase: Msg_Phase)
+  datatype Msg_Prop = Value(max_seen_n: int, max_accepted_n: int, max_val: int, phase: Msg_Phase)
 
   method PaxosSingle
     ( Ps : set<nat>
@@ -144,33 +144,33 @@ module PaxosSingle {
     while WL_main != {}
     invariant WL_main <= Ps + As;
     invariant
-        ( domain(Acc_Ns)         == As
-        && domain(Acc_Max_Seen_N)        == As
-        && domain(Acc_Max_Accepted_N)          == As
-        && domain(Acc_Soup)       == As
-        && domain(Acc_MaxV)          == As 
+        ( domain(Acc_Ns)             == As
+        && domain(Acc_Max_Seen_N)     == As
+        && domain(Acc_Max_Accepted_N) == As
+        && domain(Acc_Soup)           == As
+        && domain(Acc_MaxV)           == As 
 
-        && domain(Prop_Decided)   == Ps
-        && domain(Prop_HO)        == Ps
-        && domain(Prop_HO2)       == Ps
-        && domain(Prop_Max)       == Ps
-        && domain(Prop_N)         == Ps
-        && domain(Prop_PC)        == Ps
-        && domain(Prop_Ready)     == Ps
-        && domain(Prop_Soup)      == Ps
-        && domain(Prop_V)         == Ps
-        && domain(Prop_WL)        == Ps
-        && domain(Prop_WL2)       == Ps
-        && domain(Prop_a)         == Ps
+        && domain(Prop_Decided) == Ps
+        && domain(Prop_HO)      == Ps
+        && domain(Prop_HO2)     == Ps
+        && domain(Prop_Max)     == Ps
+        && domain(Prop_N)       == Ps
+        && domain(Prop_PC)      == Ps
+        && domain(Prop_Ready)   == Ps
+        && domain(Prop_Soup)    == Ps
+        && domain(Prop_V)       == Ps
+        && domain(Prop_WL)      == Ps
+        && domain(Prop_WL2)     == Ps
+        && domain(Prop_a)       == Ps
 
-        && domain(k)              == Ps
-        && domain(k_pending)      == Ps
-        && domain(l)              == Ps
-        && domain(m)              == Ps
+        && domain(k)         == Ps
+        && domain(k_pending) == Ps
+        && domain(l)         == Ps
+        && domain(m)         == Ps
 
-        && domain(OneB_Hist)      == As
-        && domain(TwoB_Hist)      == As
-        && domain(Joined_Rnd)     == As
+        && domain(OneB_Hist)  == As
+        && domain(TwoB_Hist)  == As
+        && domain(Joined_Rnd) == As
 
         && domain(Prop_Soup_Hist) == Ps
         && domain(Acc_Soup_Hist)  == As
@@ -251,19 +251,19 @@ module PaxosSingle {
              (pid, msg) <- recv
              match msg {
                Prepare(no) =>
-                 if max_1a < no {
-                   max_1a <- no
+                 if max1 < no {
+                   max1 <- no
                  }
                Accept(no,val) =>
-                 if max_1a <= no {
-                   if max_2a < no {
-                     max_2a <- no
-                     v      <- val
+                 if max1 <= no {
+                   ns <- ns U {no}
+                   if max2 < no {
+                     max2 <- no
+                     v    <- val
                    }
-                   ts <- ts U {no}
                  }
              }
-             send pid (n, v)
+             send pid (max1, max2, v)
            done
          */
         if Acc_Soup[a] != multiset{} {
@@ -278,6 +278,7 @@ module PaxosSingle {
           match msg {
             case Prepare(no) =>
               if Acc_Max_Seen_N[a] < no {
+                // update counters m & l
                 var onea_wl := Ps;
                 while onea_wl != {}
                 invariant onea_wl <= Ps;
@@ -319,10 +320,11 @@ module PaxosSingle {
           }
 
           if * {
-            var n := Acc_Max_Accepted_N[a];
-            var v := Acc_MaxV[a];
+            var max_seen_n     := Acc_Max_Seen_N[a];
+            var max_accepted_n := Acc_Max_Accepted_N[a];
+            var maxv           := Acc_MaxV[a];
 
-            var resp := (a, Value(n, v, phase));
+            var resp := (a, Value(max_seen_n, max_accepted_n, maxv, phase));
 
             Prop_Soup := Prop_Soup[pid := Prop_Soup[pid] + multiset{resp}];
             Prop_Soup_Hist := Prop_Soup_Hist[pid := Prop_Soup_Hist[pid] + {resp}];
@@ -330,7 +332,7 @@ module PaxosSingle {
             // history variable update
             match msg {
               case Prepare(no) =>
-                OneB_Hist := OneB_Hist[a := OneB_Hist[a] + {(no, n, v)}];
+                OneB_Hist := OneB_Hist[a := OneB_Hist[a] + {(no, max_accepted_n, maxv)}];
               case Accept(no,val) =>
                 if Acc_Max_Seen_N[a] <= no {
                   TwoB_Hist := TwoB_Hist[a := TwoB_Hist[a] + {(no,val)}];
@@ -398,15 +400,11 @@ module PaxosSingle {
               assume (pid,msg) in Prop_Soup[p];
               Prop_Soup := Prop_Soup[p := Prop_Soup[p] - multiset{(pid,msg)}];
 
-              match msg {
-                case Value(no, val, OneB) =>
-                  var max := Prop_Max[p];
-                  if no > max {
-                    Prop_Max := Prop_Max[p := no];
-                    Prop_V   := Prop_V  [p := val];
-                  }
-                  Prop_HO := Prop_HO[p := Prop_HO[p] + 1];
+              if msg.max_accepted_n > Prop_Max[p] {
+                Prop_Max := Prop_Max[p := msg.max_accepted_n];
+                Prop_V   := Prop_V  [p := msg.max_val];
               }
+              Prop_HO := Prop_HO[p := Prop_HO[p] + 1];
 
               Prop_WL := Prop_WL[p := Prop_WL[p] - {a}];
               Prop_PC := Prop_PC[p := P0];
@@ -483,14 +481,10 @@ module PaxosSingle {
               assume (pid,msg) in Prop_Soup[p];
               Prop_Soup := Prop_Soup[p := Prop_Soup[p] - multiset{(pid,msg)}];
 
-              match msg {
-                case Value(no, val, TwoB) =>
-                  var n := Prop_N[p];
-                  if no == n {
-                    Prop_HO2 := Prop_HO2[p := Prop_HO2[p] + 1];
-                    assume k_pending[p] > 0;
-                    k_pending := k_pending[p := k_pending[p] - 1];
-                  }
+              if Prop_N[p] >= msg.max_seen_n {
+                Prop_HO2 := Prop_HO2[p := Prop_HO2[p] + 1];
+                assume k_pending[p] > 0;
+                k_pending := k_pending[p := k_pending[p] - 1];
               }
 
               Prop_WL := Prop_WL[p := Prop_WL[p] - {a}];
