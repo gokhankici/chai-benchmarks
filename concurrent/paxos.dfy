@@ -74,21 +74,21 @@ module PaxosSingle {
     // Acceptor State
     // #########################################################################
 
-    // value accepted by the acceptor
-    var Acc_V : map<nat, int> := *;
-    assume domain(Acc_V) == As;
+    // value of the highest numbered proposal accepted by the acceptor
+    var Acc_MaxV : map<nat, int> := *;
+    assume domain(Acc_MaxV) == As;
 
-    // accepted proposal's number
-    var Acc_N   : map<nat, int>       := map a | a in As :: (-1);
+    // highest accepted proposal's number
+    var Acc_Max_Accepted_N : map<nat, int> := map a | a in As :: (-1);
 
     // max proposal number seen
-    var Acc_Max : map<nat, int>       := map a | a in As :: (-1);
+    var Acc_Max_Seen_N : map<nat, int> := map a | a in As :: (-1);
 
     // all accepted proposal numbers
-    var Acc_Ns  : map<nat, set<int>>  := map a | a in As :: {};
+    var Acc_Ns  : map<nat, set<int>> := map a | a in As :: {};
 
     // acceptor's program counter
-    var Acc_PC  : map<nat, Loc>       := map a | a in As :: P0;
+    var Acc_PC  : map<nat, Loc> := map a | a in As :: P0;
 
     // #########################################################################
     // Message soups
@@ -142,13 +142,13 @@ module PaxosSingle {
     var WL_main := Ps + As;
 
     while WL_main != {}
-    free invariant WL_main <= Ps + As;
-    free invariant
+    invariant WL_main <= Ps + As;
+    invariant
         ( domain(Acc_Ns)         == As
-        && domain(Acc_Max)        == As
-        && domain(Acc_N)          == As
+        && domain(Acc_Max_Seen_N)        == As
+        && domain(Acc_Max_Accepted_N)          == As
         && domain(Acc_Soup)       == As
-        && domain(Acc_V)          == As 
+        && domain(Acc_MaxV)          == As 
 
         && domain(Prop_Decided)   == Ps
         && domain(Prop_HO)        == Ps
@@ -175,39 +175,39 @@ module PaxosSingle {
         && domain(Prop_Soup_Hist) == Ps
         && domain(Acc_Soup_Hist)  == As
         );
-    free invariant forall a:nat,pid:nat,msg:Msg_Acc :: a in As && (pid,msg) in Acc_Soup[a] ==> pid in Ps;
-    free invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup[p] ==> pid in As;
-    free invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup_Hist[p] ==> pid in As;
-    free invariant forall p,a :: p in Ps && a == Prop_a[p] ==> a in As;
-    free invariant forall p :: p in Ps ==> Prop_WL[p] <= As && Prop_WL2[p] <= As;
+    invariant forall a:nat,pid:nat,msg:Msg_Acc :: a in As && (pid,msg) in Acc_Soup[a] ==> pid in Ps;
+    invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup[p] ==> pid in As;
+    invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup_Hist[p] ==> pid in As;
+    invariant forall p,a :: p in Ps && a == Prop_a[p] ==> a in As;
+    invariant forall p :: p in Ps ==> Prop_WL[p] <= As && Prop_WL2[p] <= As;
 
     // ----------------------------------------------------------------------
 
-    free invariant forall n,v1,v2 :: (n,v1) in TwoA_Hist && (n,v2) in TwoA_Hist ==> v1 == v2; // (5)
-    free invariant forall a,p,n,v :: a in As && (p,Accept(n,v)) in Acc_Soup[a] ==> Prop_PC[p] !in {P0, P1, P2} && n == Prop_N[p] && v == Prop_V[p];
-    free invariant forall n,v :: (n,v) in TwoA_Hist ==> exists p :: p in Ps && n == Prop_N[p] && v == Prop_V[p] && Prop_PC[p] !in {P0, P1, P2};
+    invariant forall n,v1,v2 :: (n,v1) in TwoA_Hist && (n,v2) in TwoA_Hist ==> v1 == v2; // (5)
+    invariant forall a,p,n,v :: a in As && (p,Accept(n,v)) in Acc_Soup[a] ==> Prop_PC[p] !in {P0, P1, P2} && n == Prop_N[p] && v == Prop_V[p];
+    invariant forall n,v :: (n,v) in TwoA_Hist ==> exists p :: p in Ps && n == Prop_N[p] && v == Prop_V[p] && Prop_PC[p] !in {P0, P1, P2};
 
     // ----------------------------------------------------------------------
 
-    free invariant forall a,n,v :: a in As && (n,v) in TwoB_Hist[a] ==> (n,v) in TwoA_Hist; // (6)
-    free invariant forall a,msg :: a in As && msg in Acc_Soup[a] ==> msg in Acc_Soup_Hist[a];
-    free invariant forall a,n,v :: a in As && (n,v) in TwoB_Hist[a] ==> (exists p :: p in Ps && (p, Accept(n,v)) in Acc_Soup_Hist[a]);
-    free invariant forall a,n,v,p :: a in As && (p, Accept(n,v)) in Acc_Soup_Hist[a] ==> (n,v) in TwoA_Hist;
+    invariant forall a,n,v :: a in As && (n,v) in TwoB_Hist[a] ==> (n,v) in TwoA_Hist; // (6)
+    invariant forall a,msg :: a in As && msg in Acc_Soup[a] ==> msg in Acc_Soup_Hist[a];
+    invariant forall a,n,v :: a in As && (n,v) in TwoB_Hist[a] ==> (exists p :: p in Ps && (p, Accept(n,v)) in Acc_Soup_Hist[a]);
+    invariant forall a,n,v,p :: a in As && (p, Accept(n,v)) in Acc_Soup_Hist[a] ==> (n,v) in TwoA_Hist;
       
     // ----------------------------------------------------------------------
 
-    free invariant forall p :: p in Ps && Prop_Decided[p] ==> k[p] > |As|/2; // (7)
-    free invariant forall p :: p in Ps ==> Prop_HO2[p] + k_pending[p] <= k[p];
-    free invariant forall p :: p in Ps ==> k_pending[p] >= 0;
+    invariant forall p :: p in Ps && Prop_Decided[p] ==> k[p] > |As|/2; // (7)
+    invariant forall p :: p in Ps ==> Prop_HO2[p] + k_pending[p] <= k[p];
+    invariant forall p :: p in Ps ==> k_pending[p] >= 0;
 
     // ----------------------------------------------------------------------
 
-    free invariant forall a,vote :: a in As && vote in TwoB_Hist[a]==> vote.0 >= 0; // (11)
+    invariant forall a,vote :: a in As && vote in TwoB_Hist[a]==> vote.0 >= 0; // (11)
 
     // ----------------------------------------------------------------------
 
-    free invariant forall a,msg,n :: a in As && msg in Acc_Soup[a] && msg.1 == Prepare(n) ==> n >= 0;
-    free invariant forall n :: n in OneA_Hist ==> n >= 0;
+    invariant forall a,msg,n :: a in As && msg in Acc_Soup[a] && msg.1 == Prepare(n) ==> n >= 0;
+    invariant forall n :: n in OneA_Hist ==> n >= 0;
 
     // ...HERE...
 
@@ -227,8 +227,8 @@ module PaxosSingle {
 
     // ----------------------------------------------------------------------
 
-    // invariant forall a,n1,n2 :: a in As && n1 < n2 && n2 in Joined_Rnd[a] ==> n1 < Acc_Max[a]; // (14)
-    // ?==>? invariant forall a,n :: a in As && n in Joined_Rnd[a] ==> n <= Acc_Max[a];
+    // invariant forall a,n1,n2 :: a in As && n1 < n2 && n2 in Joined_Rnd[a] ==> n1 < Acc_Max_Seen_N[a]; // (14)
+    // ?==>? invariant forall a,n :: a in As && n in Joined_Rnd[a] ==> n <= Acc_Max_Seen_N[a];
 
     // ----------------------------------------------------------------------
 
@@ -251,13 +251,15 @@ module PaxosSingle {
              (pid, msg) <- recv
              match msg {
                Prepare(no) =>
-                 if max < no {
-                   max <- no
+                 if max_1a < no {
+                   max_1a <- no
                  }
                Accept(no,val) =>
-                 if max <= no {
-                   v  <- val
-                   n  <- no
+                 if max_1a <= no {
+                   if max_2a < no {
+                     max_2a <- no
+                     v      <- val
+                   }
                    ts <- ts U {no}
                  }
              }
@@ -272,11 +274,10 @@ module PaxosSingle {
           Acc_Soup := Acc_Soup[a := Acc_Soup[a] - multiset{(pid,msg)}];
 
           var phase;
-          var old_max := Acc_Max[a];
 
           match msg {
             case Prepare(no) =>
-              if Acc_Max[a] < no {
+              if Acc_Max_Seen_N[a] < no {
                 var onea_wl := Ps;
                 while onea_wl != {}
                 invariant onea_wl <= Ps;
@@ -286,7 +287,7 @@ module PaxosSingle {
                   var p' := *; assume p' in onea_wl;
 
                   if Prop_N[p'] !in Acc_Ns[a] &&
-                    Prop_N[p'] >= Acc_Max[a] &&
+                    Prop_N[p'] >= Acc_Max_Seen_N[a] &&
                     Prop_N[p'] < no &&
                     l[p'] > 0 {
                       m := m[p' := m[p'] + 1];
@@ -295,16 +296,19 @@ module PaxosSingle {
                   onea_wl := onea_wl - {p'};
                 }
 
-                Acc_Max := Acc_Max[a := no];
+                Acc_Max_Seen_N := Acc_Max_Seen_N[a := no];
                 Joined_Rnd := Joined_Rnd[a := Joined_Rnd[a] + {no}];
               }
 
               phase := OneB;
             case Accept(no,val) =>
-              if old_max <= no {
-                Acc_V  := Acc_V [a := val];
-                Acc_N  := Acc_N [a := no];
+              if Acc_Max_Seen_N[a] <= no  {
                 Acc_Ns := Acc_Ns[a := Acc_Ns[a] + {no}];
+
+                if Acc_Max_Accepted_N[a] <= no {
+                  Acc_MaxV    := Acc_MaxV    [a := val];
+                  Acc_Max_Accepted_N := Acc_Max_Accepted_N [a := no];
+                }
 
                 assume l[pid] > 0;
                 k := k[pid := k[pid] + 1];
@@ -315,8 +319,8 @@ module PaxosSingle {
           }
 
           if * {
-            var n := Acc_N[a];
-            var v := Acc_V[a];
+            var n := Acc_Max_Accepted_N[a];
+            var v := Acc_MaxV[a];
 
             var resp := (a, Value(n, v, phase));
 
@@ -328,7 +332,7 @@ module PaxosSingle {
               case Prepare(no) =>
                 OneB_Hist := OneB_Hist[a := OneB_Hist[a] + {(no, n, v)}];
               case Accept(no,val) =>
-                if old_max <= no {
+                if Acc_Max_Seen_N[a] <= no {
                   TwoB_Hist := TwoB_Hist[a := TwoB_Hist[a] + {(no,val)}];
                   k_pending := k_pending[pid := k_pending[pid] + 1];
                 }
