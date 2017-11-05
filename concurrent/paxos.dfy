@@ -13,7 +13,7 @@ module PaxosSingle {
     |s|
   }
 
-  datatype Loc = P0 | P1 | P2 | P3 | P4 | P5 | P6 | P7
+  datatype Loc = P0 | P1 | P2 | P3 | P4 | P5 | P6 | P7 | P8
 
   datatype Msg_Acc =
       Prepare(no: int)
@@ -180,12 +180,17 @@ module PaxosSingle {
     free invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup_Hist[p] ==> pid in As;
     free invariant forall p,a :: p in Ps && a == Prop_a[p] ==> a in As;
     free invariant forall p :: p in Ps ==> Prop_WL[p] <= As && Prop_WL2[p] <= As;
+    free invariant forall p :: p in Ps ==> k[p] >= 0 && l[p] >= 0 && m[p] >= 0;
+    free invariant forall p :: p in Ps ==> |As| == k[p] + l[p] + m[p];
 
     // ----------------------------------------------------------------------
 
     free invariant forall n,v1,v2 :: (n,v1) in TwoA_Hist && (n,v2) in TwoA_Hist ==> v1 == v2; // (5)
     free invariant forall a,p,n,v :: a in As && (p,Accept(n,v)) in Acc_Soup[a] ==> Prop_PC[p] !in {P0, P1, P2} && n == Prop_N[p] && v == Prop_V[p];
     free invariant forall n,v :: (n,v) in TwoA_Hist ==> exists p :: p in Ps && n == Prop_N[p] && v == Prop_V[p] && Prop_PC[p] !in {P0, P1, P2};
+    free invariant forall p :: p in Ps ==> (Prop_Ready[p] ==> Prop_PC[p] !in {P0, P1, P2});
+    free invariant forall p :: p in Ps && Prop_PC[p] in {P4, P5, P6, P7} ==> Prop_Ready[p];
+    free invariant forall p :: p in Ps && Prop_Decided[p] ==> Prop_Ready[p];
 
     // ----------------------------------------------------------------------
 
@@ -222,7 +227,7 @@ module PaxosSingle {
 
     // If (n1, v1) is proposed by p1 and a higher proposal with a different
     // value is proposed, then a majority of acceptors will reject (n1, v1)
-    // invariant forall p,n1,v1,n2,v2 :: (n1,v1) in TwoA_Hist && (n2,v2) in TwoA_Hist && n1 < n2 && v1 != v2 && p in Ps && n1 == Prop_N[p] ==> m[p] > |As| / 2; (13)
+    // invariant forall p,n1,v1,n2,v2 :: (n1,v1) in TwoA_Hist && (n2,v2) in TwoA_Hist && n1 < n2 && v1 != v2 && p in Ps && n1 == Prop_N[p] ==> m[p] > |As|/2; // (13)
 
     // ----------------------------------------------------------------------
 
@@ -285,8 +290,10 @@ module PaxosSingle {
                 // update counters m & l
                 var onea_wl := Ps;
                 while onea_wl != {}
-                invariant onea_wl <= Ps;
-                invariant domain(l) == Ps && domain(m) == Ps;
+                free invariant onea_wl <= Ps;
+                free invariant domain(l) == Ps && domain(m) == Ps;
+                free invariant forall p :: p in Ps ==> k[p] >= 0 && l[p] >= 0 && m[p] >= 0;
+                free invariant forall p :: p in Ps ==> |As| == k[p] + l[p] + m[p];
                 decreases |onea_wl|
                 {
                   var p' := *; assume p' in onea_wl;
@@ -432,7 +439,7 @@ module PaxosSingle {
             Prop_Ready := Prop_Ready[p := true];
             Prop_PC    := Prop_PC   [p := P4];
           } else {
-            Prop_PC := Prop_PC[p := P7];
+            Prop_PC := Prop_PC[p := P8];
           }
 
         } else if Prop_PC[p] == P4 {
@@ -510,6 +517,8 @@ module PaxosSingle {
           if ho2 * 2 > |As| {
             Prop_Decided := Prop_Decided[p := true];
           }
+          Prop_PC := Prop_PC[p := P8];
+        } else if Prop_PC[p] == P8 {
           WL_main := WL_main - {p};
         }
       }
