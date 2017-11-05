@@ -210,6 +210,10 @@ module PaxosSingle {
 
     // ----------------------------------------------------------------------
 
+    free invariant forall a,n :: a in As && n in Joined_Rnd[a] ==> n <= Acc_Max_Seen_N[a]; // (14)
+
+    // ----------------------------------------------------------------------
+
     free invariant forall a,msg,n :: a in As && msg in Acc_Soup[a] && msg.1 == Prepare(n) ==> n >= 0;
     free invariant forall n :: n in OneA_Hist ==> n >= 0;
 
@@ -227,12 +231,7 @@ module PaxosSingle {
 
     // ----------------------------------------------------------------------
 
-    // invariant forall p,n,v :: p in Ps && Prop_N[p] == n && (n,v) in TwoA_Hist ==> m[p] > |As|/2; // (13)
-
-    // ----------------------------------------------------------------------
-
-    // invariant forall a,n1,n2 :: a in As && n1 < n2 && n2 in Joined_Rnd[a] ==> n1 < Acc_Max_Seen_N[a]; // (14)
-    // ?==>? invariant forall a,n :: a in As && n in Joined_Rnd[a] ==> n <= Acc_Max_Seen_N[a];
+    invariant forall p,n,v :: p in Ps && Prop_N[p] == n && (n,v) in TwoA_Hist ==> m[p] > |As|/2; // (13)
 
 
     // ----------------------------------------------------------------------
