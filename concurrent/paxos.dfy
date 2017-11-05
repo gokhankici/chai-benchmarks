@@ -217,7 +217,14 @@ module PaxosSingle {
     free invariant forall a,msg,n :: a in As && msg in Acc_Soup[a] && msg.1 == Prepare(n) ==> n >= 0;
     free invariant forall n :: n in OneA_Hist ==> n >= 0;
 
+    // ----------------------------------------------------------------------
     // ...HERE...
+
+    // If (n1, v1) is proposed by p1 and a higher proposal with a different
+    // value is proposed, then a majority of acceptors will reject (n1, v1)
+    // invariant forall p,n1,v1,n2,v2 :: (n1,v1) in TwoA_Hist && (n2,v2) in TwoA_Hist && n1 < n2 && v1 != v2 && p in Ps && n1 == Prop_N[p] ==> m[p] > |As| / 2; (13)
+
+    // ----------------------------------------------------------------------
 
     // invariant forall a,msg_1b,msg_2b :: a in As && msg_1b in OneB_Hist[a] && msg_2b in TwoB_Hist[a] && msg_1b.1 < 0 ==> msg_2b.0 >= msg_1b.0 // (8)
 
@@ -228,10 +235,6 @@ module PaxosSingle {
     // ----------------------------------------------------------------------
 
     // invariant forall a,n,n',n'',v,v' :: a in As && (n,n',v) in OneB_Hist[a] && (n'',v') !in TwoB_Hist[a] && n' > 0 ==> ! (n' < n'' < n) ; // (10)
-
-    // ----------------------------------------------------------------------
-
-    invariant forall p,n,v :: p in Ps && Prop_N[p] == n && (n,v) in TwoA_Hist ==> m[p] > |As|/2; // (13)
 
 
     // ----------------------------------------------------------------------
