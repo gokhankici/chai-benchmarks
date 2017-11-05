@@ -142,8 +142,8 @@ module PaxosSingle {
     var WL_main := Ps + As;
 
     while WL_main != {}
-    invariant WL_main <= Ps + As;
-    invariant
+    free invariant WL_main <= Ps + As;
+    free invariant
         ( domain(Acc_Ns)             == As
         && domain(Acc_Max_Seen_N)     == As
         && domain(Acc_Max_Accepted_N) == As
@@ -175,39 +175,43 @@ module PaxosSingle {
         && domain(Prop_Soup_Hist) == Ps
         && domain(Acc_Soup_Hist)  == As
         );
-    invariant forall a:nat,pid:nat,msg:Msg_Acc :: a in As && (pid,msg) in Acc_Soup[a] ==> pid in Ps;
-    invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup[p] ==> pid in As;
-    invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup_Hist[p] ==> pid in As;
-    invariant forall p,a :: p in Ps && a == Prop_a[p] ==> a in As;
-    invariant forall p :: p in Ps ==> Prop_WL[p] <= As && Prop_WL2[p] <= As;
+    free invariant forall a:nat,pid:nat,msg:Msg_Acc :: a in As && (pid,msg) in Acc_Soup[a] ==> pid in Ps;
+    free invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup[p] ==> pid in As;
+    free invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup_Hist[p] ==> pid in As;
+    free invariant forall p,a :: p in Ps && a == Prop_a[p] ==> a in As;
+    free invariant forall p :: p in Ps ==> Prop_WL[p] <= As && Prop_WL2[p] <= As;
 
     // ----------------------------------------------------------------------
 
-    invariant forall n,v1,v2 :: (n,v1) in TwoA_Hist && (n,v2) in TwoA_Hist ==> v1 == v2; // (5)
-    invariant forall a,p,n,v :: a in As && (p,Accept(n,v)) in Acc_Soup[a] ==> Prop_PC[p] !in {P0, P1, P2} && n == Prop_N[p] && v == Prop_V[p];
-    invariant forall n,v :: (n,v) in TwoA_Hist ==> exists p :: p in Ps && n == Prop_N[p] && v == Prop_V[p] && Prop_PC[p] !in {P0, P1, P2};
+    free invariant forall n,v1,v2 :: (n,v1) in TwoA_Hist && (n,v2) in TwoA_Hist ==> v1 == v2; // (5)
+    free invariant forall a,p,n,v :: a in As && (p,Accept(n,v)) in Acc_Soup[a] ==> Prop_PC[p] !in {P0, P1, P2} && n == Prop_N[p] && v == Prop_V[p];
+    free invariant forall n,v :: (n,v) in TwoA_Hist ==> exists p :: p in Ps && n == Prop_N[p] && v == Prop_V[p] && Prop_PC[p] !in {P0, P1, P2};
 
     // ----------------------------------------------------------------------
 
-    invariant forall a,n,v :: a in As && (n,v) in TwoB_Hist[a] ==> (n,v) in TwoA_Hist; // (6)
-    invariant forall a,msg :: a in As && msg in Acc_Soup[a] ==> msg in Acc_Soup_Hist[a];
-    invariant forall a,n,v :: a in As && (n,v) in TwoB_Hist[a] ==> (exists p :: p in Ps && (p, Accept(n,v)) in Acc_Soup_Hist[a]);
-    invariant forall a,n,v,p :: a in As && (p, Accept(n,v)) in Acc_Soup_Hist[a] ==> (n,v) in TwoA_Hist;
+    free invariant forall a,n,v :: a in As && (n,v) in TwoB_Hist[a] ==> (n,v) in TwoA_Hist; // (6)
+    free invariant forall a,msg :: a in As && msg in Acc_Soup[a] ==> msg in Acc_Soup_Hist[a];
+    free invariant forall a,n,v :: a in As && (n,v) in TwoB_Hist[a] ==> (exists p :: p in Ps && (p, Accept(n,v)) in Acc_Soup_Hist[a]);
+    free invariant forall a,n,v,p :: a in As && (p, Accept(n,v)) in Acc_Soup_Hist[a] ==> (n,v) in TwoA_Hist;
       
     // ----------------------------------------------------------------------
 
-    invariant forall p :: p in Ps && Prop_Decided[p] ==> k[p] > |As|/2; // (7)
-    invariant forall p :: p in Ps ==> Prop_HO2[p] + k_pending[p] <= k[p];
-    invariant forall p :: p in Ps ==> k_pending[p] >= 0;
+    free invariant forall p :: p in Ps && Prop_Decided[p] ==> k[p] > |As|/2; // (7)
+    free invariant forall p :: p in Ps ==> Prop_HO2[p] + k_pending[p] <= k[p];
+    free invariant forall p :: p in Ps ==> k_pending[p] >= 0;
 
     // ----------------------------------------------------------------------
 
-    invariant forall a,vote :: a in As && vote in TwoB_Hist[a]==> vote.0 >= 0; // (11)
+    free invariant forall a,vote :: a in As && vote in TwoB_Hist[a]==> vote.0 >= 0; // (11)
 
     // ----------------------------------------------------------------------
 
-    invariant forall a,msg,n :: a in As && msg in Acc_Soup[a] && msg.1 == Prepare(n) ==> n >= 0;
-    invariant forall n :: n in OneA_Hist ==> n >= 0;
+    free invariant forall a,no,maxn,maxv :: a in As && (no, maxn, maxv) in OneB_Hist[a] ==> no in Joined_Rnd[a]; // (15)
+
+    // ----------------------------------------------------------------------
+
+    free invariant forall a,msg,n :: a in As && msg in Acc_Soup[a] && msg.1 == Prepare(n) ==> n >= 0;
+    free invariant forall n :: n in OneA_Hist ==> n >= 0;
 
     // ...HERE...
 
@@ -230,9 +234,6 @@ module PaxosSingle {
     // invariant forall a,n1,n2 :: a in As && n1 < n2 && n2 in Joined_Rnd[a] ==> n1 < Acc_Max_Seen_N[a]; // (14)
     // ?==>? invariant forall a,n :: a in As && n in Joined_Rnd[a] ==> n <= Acc_Max_Seen_N[a];
 
-    // ----------------------------------------------------------------------
-
-    // invariant forall a,msg :: a in As && msg in OneB_Hist[a] ==> msg.0 in Joined_Rnd[a]; // (15)
 
     // ----------------------------------------------------------------------
 
@@ -274,10 +275,11 @@ module PaxosSingle {
           Acc_Soup := Acc_Soup[a := Acc_Soup[a] - multiset{(pid,msg)}];
 
           var phase;
+          var old_max_seen_n := Acc_Max_Seen_N[a];
 
           match msg {
             case Prepare(no) =>
-              if Acc_Max_Seen_N[a] < no {
+              if old_max_seen_n < no {
                 // update counters m & l
                 var onea_wl := Ps;
                 while onea_wl != {}
@@ -303,7 +305,7 @@ module PaxosSingle {
 
               phase := OneB;
             case Accept(no,val) =>
-              if Acc_Max_Seen_N[a] <= no  {
+              if old_max_seen_n <= no  {
                 Acc_Ns := Acc_Ns[a := Acc_Ns[a] + {no}];
 
                 if Acc_Max_Accepted_N[a] <= no {
@@ -332,9 +334,11 @@ module PaxosSingle {
             // history variable update
             match msg {
               case Prepare(no) =>
-                OneB_Hist := OneB_Hist[a := OneB_Hist[a] + {(no, max_accepted_n, maxv)}];
+                if old_max_seen_n < no {
+                  OneB_Hist := OneB_Hist[a := OneB_Hist[a] + {(no, max_accepted_n, maxv)}];
+                }
               case Accept(no,val) =>
-                if Acc_Max_Seen_N[a] <= no {
+                if old_max_seen_n <= no {
                   TwoB_Hist := TwoB_Hist[a := TwoB_Hist[a] + {(no,val)}];
                   k_pending := k_pending[pid := k_pending[pid] + 1];
                 }
