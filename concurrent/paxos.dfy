@@ -63,6 +63,9 @@ module PaxosSingle {
 
     var Prop_Decided  : map<nat, bool> := map p | p in Ps :: false;
 
+    var Prop_Exec_P5 : map<nat, bool> := map p | p in Ps :: false;
+    var Prop_Exec_P6 : map<nat, bool> := map p | p in Ps :: false;
+
     var Prop_a   : map<nat, nat> := *;
     assume domain(Prop_a) == Ps;
     assume forall p,a :: p in Ps && a == Prop_a[p] ==> a in As;
@@ -157,6 +160,8 @@ module PaxosSingle {
         && domain(Prop_N)       == Ps
         && domain(Prop_PC)      == Ps
         && domain(Prop_Ready)   == Ps
+        && domain(Prop_Exec_P5) == Ps
+        && domain(Prop_Exec_P6) == Ps
         && domain(Prop_Soup)    == Ps
         && domain(Prop_V)       == Ps
         && domain(Prop_WL)      == Ps
@@ -182,6 +187,7 @@ module PaxosSingle {
     free invariant forall p :: p in Ps ==> Prop_WL[p] <= As && Prop_WL2[p] <= As;
     free invariant forall p :: p in Ps ==> k[p] >= 0 && l[p] >= 0 && m[p] >= 0;
     free invariant forall p :: p in Ps ==> |As| == k[p] + l[p] + m[p];
+    free invariant forall p :: p in Ps && Prop_Ready[p] ==> Prop_HO[p] > |As|/2;
 
     // ----------------------------------------------------------------------
 
@@ -223,23 +229,39 @@ module PaxosSingle {
     free invariant forall n :: n in OneA_Hist ==> n >= 0;
 
     // ----------------------------------------------------------------------
+
+    // ####################################################################################
+    // is the following needed ?
+    // ####################################################################################
+    // invariant forall p :: p in Ps && Prop_Decided[p] ==> (Prop_N[p], Prop_V[p]) in TwoA_Hist;
+    // invariant forall p :: p in Ps && Prop_Exec_P5[p] ==> (Prop_N[p], Prop_V[p]) in TwoA_Hist;
+    // invariant forall p :: p in Ps && Prop_PC[p] == P6 ==> Prop_Exec_P5[p];
+    // invariant forall p :: p in Ps && Prop_Exec_P6[p] ==> Prop_Exec_P5[p];
+    // invariant forall p :: p in Ps && Prop_PC[p] == P4 && Prop_WL2[p] == {} ==> Prop_Exec_P6[p];
+    // invariant forall p :: p in Ps && Prop_WL2[p] == {} ==> Prop_Exec_P5[p];
+    // invariant forall p :: p in Ps && Prop_PC[p] == P7 ==> Prop_WL2[p] == {};
+    // ####################################################################################
+
+    // ----------------------------------------------------------------------
+
     // ...HERE...
 
-    // If (n1, v1) is proposed by p1 and a higher proposal with a different
-    // value is proposed, then a majority of acceptors will reject (n1, v1)
-    // invariant forall p,n1,v1,n2,v2 :: (n1,v1) in TwoA_Hist && (n2,v2) in TwoA_Hist && n1 < n2 && v1 != v2 && p in Ps && n1 == Prop_N[p] ==> m[p] > |As|/2; // (13)
+    // (13): If (n1, v1) is proposed by p1 and a higher proposal with a
+    // different value is proposed, then a majority of acceptors will reject
+    // (n1, v1)
+    // invariant forall p,n,v :: p in Ps && Prop_Ready[p] && (n,v) in TwoA_Hist && n > Prop_N[p] && v != Prop_V[p] ==> m[p] > |As|/2;
 
     // ----------------------------------------------------------------------
 
-    // invariant forall a,msg_1b,msg_2b :: a in As && msg_1b in OneB_Hist[a] && msg_2b in TwoB_Hist[a] && msg_1b.1 < 0 ==> msg_2b.0 >= msg_1b.0 // (8)
+    // invariant forall a,no,maxa,maxv,n,v :: a in As && (no,maxa,maxv) in OneB_Hist[a] && (n,v) in TwoB_Hist[a] && maxa < 0 ==> n >= no // (8)
 
     // ----------------------------------------------------------------------
 
-    // invariant forall a,n,n',v :: a in As && (n,n',v) in OneB_Hist[a] && n' > 0 ==> n' < n && (n',v) in TwoB_Hist[a]; // (9)
+    // invariant forall a,no,maxa,maxv :: a in As && (no,maxa,maxv) in OneB_Hist[a] && maxa > 0 ==> exists n,v :: (n,v) in TwoB_Hist[a] && n < no; // (9)
 
     // ----------------------------------------------------------------------
 
-    // invariant forall a,n,n',n'',v,v' :: a in As && (n,n',v) in OneB_Hist[a] && (n'',v') !in TwoB_Hist[a] && n' > 0 ==> ! (n' < n'' < n) ; // (10)
+    // invariant forall a,n,n',n'',v,v' :: a in As && (n,n',v) in OneB_Hist[a] && (n'',v') in TwoB_Hist[a] && n' > 0 ==> ! (n' < n'' < n) ; // (10)
 
 
     // ----------------------------------------------------------------------
@@ -290,10 +312,10 @@ module PaxosSingle {
                 // update counters m & l
                 var onea_wl := Ps;
                 while onea_wl != {}
-                free invariant onea_wl <= Ps;
-                free invariant domain(l) == Ps && domain(m) == Ps;
-                free invariant forall p :: p in Ps ==> k[p] >= 0 && l[p] >= 0 && m[p] >= 0;
-                free invariant forall p :: p in Ps ==> |As| == k[p] + l[p] + m[p];
+                invariant onea_wl <= Ps;
+                invariant domain(l) == Ps && domain(m) == Ps;
+                invariant forall p :: p in Ps ==> k[p] >= 0 && l[p] >= 0 && m[p] >= 0;
+                invariant forall p :: p in Ps ==> |As| == k[p] + l[p] + m[p];
                 decreases |onea_wl|
                 {
                   var p' := *; assume p' in onea_wl;
@@ -318,7 +340,7 @@ module PaxosSingle {
                 Acc_Ns := Acc_Ns[a := Acc_Ns[a] + {no}];
 
                 if Acc_Max_Accepted_N[a] <= no {
-                  Acc_MaxV    := Acc_MaxV    [a := val];
+                  Acc_MaxV := Acc_MaxV[a := val];
                   Acc_Max_Accepted_N := Acc_Max_Accepted_N [a := no];
                 }
 
@@ -413,17 +435,17 @@ module PaxosSingle {
               assume (pid,msg) in Prop_Soup[p];
               Prop_Soup := Prop_Soup[p := Prop_Soup[p] - multiset{(pid,msg)}];
 
-              if msg.max_accepted_n > Prop_Max[p] {
-                Prop_Max := Prop_Max[p := msg.max_accepted_n];
-                Prop_V   := Prop_V  [p := msg.max_val];
+              if msg.max_seen_n < n {
+                if msg.max_accepted_n > Prop_Max[p] {
+                  Prop_Max := Prop_Max[p := msg.max_accepted_n];
+                  Prop_V   := Prop_V  [p := msg.max_val];
+                }
+                Prop_HO := Prop_HO[p := Prop_HO[p] + 1];
               }
-              Prop_HO := Prop_HO[p := Prop_HO[p] + 1];
 
-              Prop_WL := Prop_WL[p := Prop_WL[p] - {a}];
               Prop_PC := Prop_PC[p := P0];
             }
           } else {
-            Prop_WL := Prop_WL[p := Prop_WL[p] - {a}];
             Prop_PC := Prop_PC[p := P0];
           }
 
@@ -432,7 +454,7 @@ module PaxosSingle {
                ready <- true
                <P4>
              }
-             <P7>
+             <P8>
            */
           var ho := Prop_HO[p];
           if ho * 2 > |As| {
@@ -447,6 +469,7 @@ module PaxosSingle {
                <P5>
                <P6>
              done
+             <P7>
            */
           if Prop_WL2[p] != {} {
             var a := *; assume a in Prop_WL2[p];
@@ -470,6 +493,7 @@ module PaxosSingle {
 
           // history update
           TwoA_Hist := TwoA_Hist + {(n,v)};
+          Prop_Exec_P5 := Prop_Exec_P5[p := true];
 
           Prop_PC := Prop_PC[p := P6];
 
@@ -500,11 +524,11 @@ module PaxosSingle {
                 k_pending := k_pending[p := k_pending[p] - 1];
               }
 
-              Prop_WL := Prop_WL[p := Prop_WL[p] - {a}];
+              Prop_Exec_P6 := Prop_Exec_P6[p := true];
               Prop_PC := Prop_PC[p := P4];
             }
           } else {
-            Prop_WL := Prop_WL[p := Prop_WL[p] - {a}];
+            Prop_Exec_P6 := Prop_Exec_P6[p := true];
             Prop_PC := Prop_PC[p := P4];
           }
 
