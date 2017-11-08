@@ -185,8 +185,6 @@ module PaxosSingle {
     free invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup_Hist[p] ==> pid in As;
     free invariant forall p,a :: p in Ps && a == Prop_a[p] ==> a in As;
     free invariant forall p :: p in Ps ==> Prop_WL[p] <= As && Prop_WL2[p] <= As;
-    free invariant forall p :: p in Ps ==> k[p] >= 0 && l[p] >= 0 && m[p] >= 0;
-    free invariant forall p :: p in Ps ==> |As| == k[p] + l[p] + m[p];
     free invariant forall p :: p in Ps && Prop_Ready[p] ==> Prop_HO[p] > |As|/2;
 
     // ----------------------------------------------------------------------
@@ -206,6 +204,10 @@ module PaxosSingle {
     free invariant forall a,n,v,p :: a in As && (p, Accept(n,v)) in Acc_Soup_Hist[a] ==> (n,v) in TwoA_Hist;
       
     // ----------------------------------------------------------------------
+
+    free invariant forall p :: p in Ps ==> k[p] >= 0 && l[p] >= 0 && m[p] >= 0;
+    free invariant forall p :: p in Ps ==> |As| == k[p] + l[p] + m[p];
+    free invariant forall p :: p in Ps && k[p] > |As|/2 ==> m[p] <= |As|/2;
 
     free invariant forall p :: p in Ps && Prop_Decided[p] ==> k[p] > |As|/2; // (7)
     free invariant forall p :: p in Ps ==> Prop_HO2[p] + k_pending[p] <= k[p];
@@ -230,43 +232,15 @@ module PaxosSingle {
 
     // ----------------------------------------------------------------------
 
-    // ####################################################################################
-    // is the following needed ?
-    // ####################################################################################
-    // invariant forall p :: p in Ps && Prop_Decided[p] ==> (Prop_N[p], Prop_V[p]) in TwoA_Hist;
-    // invariant forall p :: p in Ps && Prop_Exec_P5[p] ==> (Prop_N[p], Prop_V[p]) in TwoA_Hist;
-    // invariant forall p :: p in Ps && Prop_PC[p] == P6 ==> Prop_Exec_P5[p];
-    // invariant forall p :: p in Ps && Prop_Exec_P6[p] ==> Prop_Exec_P5[p];
-    // invariant forall p :: p in Ps && Prop_PC[p] == P4 && Prop_WL2[p] == {} ==> Prop_Exec_P6[p];
-    // invariant forall p :: p in Ps && Prop_WL2[p] == {} ==> Prop_Exec_P5[p];
-    // invariant forall p :: p in Ps && Prop_PC[p] == P7 ==> Prop_WL2[p] == {};
-    // ####################################################################################
+	  free invariant forall p,n,v :: (n,v) in TwoA_Hist && p in Ps && Prop_N[p] == n ==> Prop_Ready[p];
 
     // ----------------------------------------------------------------------
 
-	free invariant forall p,n,v :: (n,v) in TwoA_Hist && p in Ps && Prop_N[p] == n ==> Prop_Ready[p];
-
-    // ...HERE...
-
-	free invariant forall p,n,v :: (n,v) in TwoA_Hist && p in Ps && Prop_N[p] < n && m[p] <= |As|/2 ==> Prop_V[p] == v;
-	
-	// (13): If (n1, v1) is proposed by p1 and a higher proposal with a
-    // different value is proposed, then a majority of acceptors will reject
-    // (n1, v1)
-    // invariant forall p,n,v :: p in Ps && Prop_Ready[p] && (n,v) in TwoA_Hist && n > Prop_N[p] && v != Prop_V[p] ==> m[p] > |As|/2;
-
-    // ----------------------------------------------------------------------
-
-    // invariant forall a,no,maxa,maxv,n,v :: a in As && (no,maxa,maxv) in OneB_Hist[a] && (n,v) in TwoB_Hist[a] && maxa < 0 ==> n >= no // (8)
-
-    // ----------------------------------------------------------------------
-
-    // invariant forall a,no,maxa,maxv :: a in As && (no,maxa,maxv) in OneB_Hist[a] && maxa > 0 ==> exists n,v :: (n,v) in TwoB_Hist[a] && n < no; // (9)
-
-    // ----------------------------------------------------------------------
-
-    // invariant forall a,n,n',n'',v,v' :: a in As && (n,n',v) in OneB_Hist[a] && (n'',v') in TwoB_Hist[a] && n' > 0 ==> ! (n' < n'' < n) ; // (10)
-
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // !!! Required to prove the safety property !!!
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	  // free invariant forall p,p' :: p in Ps && p' in Ps && Prop_Ready[p'] && Prop_N[p] < Prop_N[p'] && Prop_V[p] != Prop_V[p'] ==> m[p] > |As|/2;
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     // ----------------------------------------------------------------------
 
@@ -551,9 +525,5 @@ module PaxosSingle {
         }
       }
     }
-
-    // forall p1,p2 :: p1.decided && p2.decided ==> p1.v == p2.v
-    // assert forall p1,p2 :: p1 in Ps && p2 in Ps && Prop_Decided[p1] && Prop_Decided[p2] ==> Prop_V[p1] == Prop_V[p2];
-
   }
 }
