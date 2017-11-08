@@ -25,7 +25,7 @@ module PaxosSingle {
 
   datatype Msg_Prop = Value(max_seen_n: int, max_accepted_n: int, max_val: int, phase: Msg_Phase)
 
-  method PaxosSingle
+  method {:timeLimit 0} PaxosSingle
     ( Ps : set<nat>
     , As : set<nat>
     )
@@ -244,9 +244,13 @@ module PaxosSingle {
 
     // ----------------------------------------------------------------------
 
+	free invariant forall p,n,v :: (n,v) in TwoA_Hist && p in Ps && Prop_N[p] == n ==> Prop_Ready[p];
+
     // ...HERE...
 
-    // (13): If (n1, v1) is proposed by p1 and a higher proposal with a
+	free invariant forall p,n,v :: (n,v) in TwoA_Hist && p in Ps && Prop_N[p] < n && m[p] <= |As|/2 ==> Prop_V[p] == v;
+	
+	// (13): If (n1, v1) is proposed by p1 and a higher proposal with a
     // different value is proposed, then a majority of acceptors will reject
     // (n1, v1)
     // invariant forall p,n,v :: p in Ps && Prop_Ready[p] && (n,v) in TwoA_Hist && n > Prop_N[p] && v != Prop_V[p] ==> m[p] > |As|/2;
