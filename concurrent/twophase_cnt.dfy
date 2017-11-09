@@ -2,7 +2,7 @@
 // annot      : 29
 // harness    : 51
 
-module TwoPhaseCommit                                                                                                    // code
+module TwoPhaseCommit
 {                                                                         
   datatype VoteType     = Yes | No                                                                                       // code
   datatype DecisionType = Commit | Abort                                                                                 // code
@@ -21,7 +21,7 @@ module TwoPhaseCommit                                                           
                  )                                                                                                       // code
     requires forall p :: p in Ps ==> p != c                                                                              // annot
     decreases *
-  {                                                                                                                      // code
+  {
     // ################################################################
     // Initialize C
     // ################################################################
@@ -109,7 +109,7 @@ module TwoPhaseCommit                                                           
     // ##########################################################################
 
     decreases *                                                                                                          // annot
-    {                                                                                                                    // code
+    {
       var p := *; assume p in main_WL;                                                                                   // harness
 
       if p == c {                                                                                                        // harness
@@ -127,7 +127,7 @@ module TwoPhaseCommit                                                           
             WL := WL - {w};                                                                                              // code
           } else {                                                                                                       // harness
             c_pc := P1;                                                                                                  // harness
-          }                                                                                                              // code
+          }
         } else if c_pc == P1 {                                                                                           // harness
           /* for w in Ps:                                                                                                
                msg <- recv                                                                                               
@@ -147,10 +147,10 @@ module TwoPhaseCommit                                                           
 
               vote_buf := vote_buf[1..];                                                                                 // harness
               WL2 := WL2 - {w};                                                                                          // code
-            }                                                                                                            // code
+            }
           } else {                                                                                                       // harness
             c_pc := P2;                                                                                                  // harness
-          }                                                                                                              // code
+          }
         } else if c_pc == P2 && ! c_p2_is_run {                                                                          // harness
           /* if abort                                                                                                    
                reply <- Abort                                                                                            
@@ -181,7 +181,7 @@ module TwoPhaseCommit                                                           
             WL3 := WL3 - {w};                                                                                            // code
           } else {                                                                                                       // harness
             c_pc := P4;                                                                                                  // harness
-          }                                                                                                              // code
+          }
         } else if c_pc == P4 {                                                                                           // harness
           /* for w in Ps:                                                                                                
                _ <- recv                                                                                                 
@@ -194,14 +194,14 @@ module TwoPhaseCommit                                                           
 
               ack_buf := ack_buf[1..];                                                                                   // harness
               WL4 := WL4 - {w};                                                                                          // code
-            }                                                                                                            // code
+            }
           } else {                                                                                                       // harness
             c_pc := P5;                                                                                                  // harness
-          }                                                                                                              // code
+          }
         } else if c_pc == P5 {                                                                                           // harness
           main_WL := main_WL - {c};                                                                                      // harness
           c_pc := P6;                                                                                                    // harness
-        }                                                                                                                // code
+        }
       } else {                                                                                                           // harness
         // ################################################################                                              
         // Workers                                                                                                       
