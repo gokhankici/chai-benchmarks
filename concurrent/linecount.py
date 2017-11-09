@@ -2,7 +2,7 @@
 
 import fileinput
 
-columns = ['code', 'annot', 'harness']
+columns = ['code', 'annot', 'inv', 'harness']
 
 values = {c: 0 for c in columns}
 

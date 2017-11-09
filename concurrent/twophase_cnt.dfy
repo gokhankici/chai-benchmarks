@@ -1,6 +1,7 @@
-// code       : 76
-// annot      : 29
-// harness    : 51
+// code       : 64
+// annot      : 23
+// inv        : 13
+// harness    : 53
 
 module TwoPhaseCommit
 {                                                                         
@@ -18,7 +19,7 @@ module TwoPhaseCommit
 
   method {:timeLimit 0} TwoPhase( Ps : set<nat> // workers                                                               // code
                  , c  : nat      // coordinator                                                                          // code
-                 )                                                                                                       // code
+                 )
     requires forall p :: p in Ps ==> p != c                                                                              // annot
     decreases *
   {
@@ -56,13 +57,13 @@ module TwoPhaseCommit
     var WL4 := Ps;                                                                                                       // harness
     var vote := *;                                                                                                       // code
 
-    var c_p2_is_run := false;                                                                                            // code
+    var c_p2_is_run := false;                                                                                            // annot
 
-    var Ps_p0_is_run := map p | p in Ps :: false; assume domain(Ps_p0_is_run) == Ps;                                     // code
-    var Ps_p2_is_run := map p | p in Ps :: false; assume domain(Ps_p2_is_run) == Ps;                                     // code
-    var Ps_p3_is_run := map p | p in Ps :: false; assume domain(Ps_p3_is_run) == Ps;                                     // code
+    var Ps_p0_is_run := map p | p in Ps :: false; assume domain(Ps_p0_is_run) == Ps;                                     // annot
+    var Ps_p2_is_run := map p | p in Ps :: false; assume domain(Ps_p2_is_run) == Ps;                                     // annot
+    var Ps_p3_is_run := map p | p in Ps :: false; assume domain(Ps_p3_is_run) == Ps;                                     // annot
 
-    while main_WL != {}                                                                                                  // code
+    while main_WL != {}                                                                                                   // harness
     invariant domain(prep_buf) == Ps;                                                                                    // annot
     invariant domain(dec_buf) == Ps;                                                                                     // annot
     invariant domain(Ps_pc) == Ps;                                                                                       // annot
@@ -79,40 +80,40 @@ module TwoPhaseCommit
     invariant WL <= Ps;                                                                                                  // annot
     invariant WL2 <= Ps;                                                                                                 // annot
 
-    invariant forall p :: p in Ps && p !in main_WL ==> Ps_pc[p] == P5;                                                   // annot
+    invariant forall p :: p in Ps && p !in main_WL ==> Ps_pc[p] == P5;                                                   // inv
 
     // ##########################################################################
     // Sequencing
     // ##########################################################################
-    invariant c_p2_is_run <==> c_pc in {P3, P4, P5, P6};                                                                 // annot
+    invariant c_p2_is_run <==> c_pc in {P3, P4, P5, P6};                                                                 // inv
 
-    invariant forall p :: p in Ps ==> ( Ps_p0_is_run[p] <==> Ps_pc[p] in {P1, P2, P3, P4, P5} );                         // annot
-    invariant forall p :: p in Ps ==> ( Ps_p2_is_run[p] <==> Ps_pc[p] in {P3, P4, P5} );                                 // annot
-    invariant forall p :: p in Ps ==> ( Ps_p3_is_run[p] <==> Ps_pc[p] in {P4, P5} );                                     // annot
+    invariant forall p :: p in Ps ==> ( Ps_p0_is_run[p] <==> Ps_pc[p] in {P1, P2, P3, P4, P5} );                         // inv
+    invariant forall p :: p in Ps ==> ( Ps_p2_is_run[p] <==> Ps_pc[p] in {P3, P4, P5} );                                 // inv
+    invariant forall p :: p in Ps ==> ( Ps_p3_is_run[p] <==> Ps_pc[p] in {P4, P5} );                                     // inv
     // ##########################################################################
 
     // ##########################################################################
     // 1st phase
     // ##########################################################################
-    invariant forall p,i :: p in Ps && 0 <= i < |prep_buf[p]| ==> prep_buf[p][i] == (c, proposal);                       // annot
-    invariant forall p :: p in Ps && Ps_p0_is_run[p] ==> Id[p] == c && Val[p] == proposal;                               // annot
+    invariant forall p,i :: p in Ps && 0 <= i < |prep_buf[p]| ==> prep_buf[p][i] == (c, proposal);                       // inv
+    invariant forall p :: p in Ps && Ps_p0_is_run[p] ==> Id[p] == c && Val[p] == proposal;                               // inv
     // ##########################################################################
 
     // ##########################################################################
     // 2nd phase
     // ##########################################################################
-    invariant forall p :: p in Ps && |dec_buf[p]| > 0 ==> c_p2_is_run;                                                   // annot
-    invariant forall p,i :: p in Ps && c_p2_is_run && 0 <= i < |dec_buf[p]| ==> dec_buf[p][i] == reply;                  // annot
-    invariant forall p :: p in Ps && Ps_p2_is_run[p] ==> c_p2_is_run && Decision[p] == reply;                            // annot
-    invariant c_p2_is_run ==> (reply == Commit <==> committed);                                                          // annot
-    invariant forall p :: p in Ps && Ps_p3_is_run[p] && Decision[p] == Commit ==> Value[p] == Val[p];                    // annot
+    invariant forall p :: p in Ps && |dec_buf[p]| > 0 ==> c_p2_is_run;                                                   // inv
+    invariant forall p,i :: p in Ps && c_p2_is_run && 0 <= i < |dec_buf[p]| ==> dec_buf[p][i] == reply;                  // inv
+    invariant forall p :: p in Ps && Ps_p2_is_run[p] ==> c_p2_is_run && Decision[p] == reply;                            // inv
+    invariant c_p2_is_run ==> (reply == Commit <==> committed);                                                          // inv
+    invariant forall p :: p in Ps && Ps_p3_is_run[p] && Decision[p] == Commit ==> Value[p] == Val[p];                    // inv
     // ##########################################################################
 
     decreases *                                                                                                          // annot
     {
       var p := *; assume p in main_WL;                                                                                   // harness
 
-      if p == c {                                                                                                        // harness
+      if p == c {                                                                                                        // code
         // ################################################################                                              
         // Coordinator                                                                                                   
         // ################################################################                                              
@@ -127,7 +128,7 @@ module TwoPhaseCommit
             WL := WL - {w};                                                                                              // code
           } else {                                                                                                       // harness
             c_pc := P1;                                                                                                  // harness
-          }
+          } // code
         } else if c_pc == P1 {                                                                                           // harness
           /* for w in Ps:                                                                                                
                msg <- recv                                                                                               
@@ -138,8 +139,8 @@ module TwoPhaseCommit
            */                                                                                                            
           if WL2 != {} {                                                                                                 // code
             if |vote_buf| > 0 {                                                                                          // harness
-              vote := vote_buf[0];                                                                                       // code
               var w := *; assume w in WL2;                                                                               // code
+              vote := vote_buf[0];                                                                                       // code
 
               if vote == No {                                                                                            // code
                 abort := true;                                                                                           // code
@@ -147,10 +148,10 @@ module TwoPhaseCommit
 
               vote_buf := vote_buf[1..];                                                                                 // harness
               WL2 := WL2 - {w};                                                                                          // code
-            }
+            } // harness
           } else {                                                                                                       // harness
             c_pc := P2;                                                                                                  // harness
-          }
+          } // code
         } else if c_pc == P2 && ! c_p2_is_run {                                                                          // harness
           /* if abort                                                                                                    
                reply <- Abort                                                                                            
@@ -166,7 +167,7 @@ module TwoPhaseCommit
           } else {                                                                                                       // code
             reply     := Commit;                                                                                         // code
             committed := true;                                                                                           // code
-          }                                                                                                              // code
+          } // code
 
           c_p2_is_run := true;                                                                                           // code
           c_pc := P3;                                                                                                    // harness
@@ -181,7 +182,7 @@ module TwoPhaseCommit
             WL3 := WL3 - {w};                                                                                            // code
           } else {                                                                                                       // harness
             c_pc := P4;                                                                                                  // harness
-          }
+          } // code
         } else if c_pc == P4 {                                                                                           // harness
           /* for w in Ps:                                                                                                
                _ <- recv                                                                                                 
@@ -194,15 +195,15 @@ module TwoPhaseCommit
 
               ack_buf := ack_buf[1..];                                                                                   // harness
               WL4 := WL4 - {w};                                                                                          // code
-            }
+            } // harness
           } else {                                                                                                       // harness
             c_pc := P5;                                                                                                  // harness
-          }
+          } // code
         } else if c_pc == P5 {                                                                                           // harness
           main_WL := main_WL - {c};                                                                                      // harness
           c_pc := P6;                                                                                                    // harness
-        }
-      } else {                                                                                                           // harness
+        } // harness
+      } else {                                                                                                           // code
         // ################################################################                                              
         // Workers                                                                                                       
         // ################################################################                                              
@@ -227,9 +228,9 @@ module TwoPhaseCommit
             Msg := Msg[p := Yes];                                                                                        // code
           } else {                                                                                                       // code
             Msg := Msg[p := No];                                                                                         // code
-          }                                                                                                              // code
+          } // code
 
-          Ps_p0_is_run := Ps_p0_is_run[p := true];                                                                       // code
+          Ps_p0_is_run := Ps_p0_is_run[p := true];                                                                       // annot
           Ps_pc := Ps_pc[p := P1];                                                                                       // harness
         } else if p_pc == P1 {                                                                                           // harness
           /* send id msg                                                                                                 
@@ -244,7 +245,7 @@ module TwoPhaseCommit
           Decision := Decision[p := msg];                                                                                // code
           dec_buf := dec_buf[p := dec_buf[p][1..]];                                                                      // harness
 
-          Ps_p2_is_run := Ps_p2_is_run[p := true];                                                                       // code
+          Ps_p2_is_run := Ps_p2_is_run[p := true];                                                                       // annot
           Ps_pc := Ps_pc[p := P3];                                                                                       // harness
         } else if p_pc == P3 && ! Ps_p3_is_run[p] {                                                                      // harness
           /* if decision == Commit                                                                                       
@@ -254,19 +255,19 @@ module TwoPhaseCommit
            */                                                                                                            
           if Decision[p] == Commit {                                                                                     // code
             Value := Value[p := Val[p]];                                                                                 // code
-          }                                                                                                              // code
+          } // code
           ack_buf := ack_buf + [Ack];                                                                                    // code
 
-          Ps_p3_is_run := Ps_p3_is_run[p := true];                                                                       // code
+          Ps_p3_is_run := Ps_p3_is_run[p := true];                                                                       // annot
           Ps_pc := Ps_pc[p := P4];                                                                                       // harness
         } else if p_pc == P4 {                                                                                           // harness
           main_WL := main_WL - {p};                                                                                      // harness
           Ps_pc := Ps_pc[p := P5];                                                                                       // harness
         }                                                                                                                
-      }                                                                                                                 
+      }                                                                                                                  // code
     }                                                                                                                  
 
-    assert committed ==> (forall p :: p in Ps ==> Value[p] == proposal);                                                 // annot
+    assert committed ==> (forall p :: p in Ps ==> Value[p] == proposal);                                                 // inv
 
   }                                                                                                                   
 }                                                                                                                    
