@@ -6,10 +6,10 @@ module TwoPhaseCommit
   datatype PC           = P0 | P1 | P2 | P3 | P4 | P5 | P6
 
   function domain<U,V>(m: map<U,V>) : set<U>
-	  ensures domain(m) == set u : U | u in m :: u;
-	  ensures forall u :: u in domain(m) ==> u in m;
+    ensures domain(m) == set u : U | u in m :: u;
+    ensures forall u :: u in domain(m) ==> u in m;
   {
-		  set u : U | u in m :: u
+    set u : U | u in m :: u
   }
 
   method TwoPhase( Ps : set<nat> // workers
