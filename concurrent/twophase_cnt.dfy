@@ -1,7 +1,7 @@
-// code       : 64
-// annot      : 23
+// code       : 55
+// annot      : 24
 // inv        : 13
-// harness    : 53
+// harness    : 61
 
 module TwoPhaseCommit
 {                                                                         
@@ -122,10 +122,10 @@ module TwoPhaseCommit
                send w (c, proposal)                                                                                     
              end                                                                                                       
            */                                                                                                         
-          if WL != {} {                                                                                                  // code
-            var w := *; assume w in WL;                                                                                  // code
+          if WL != {} { // w in WL                                                                                       // code
+            var w := *; assume w in WL;                                                                                  // harness
             prep_buf := prep_buf[w := prep_buf[w] + [(c, proposal)]];                                                    // code
-            WL := WL - {w};                                                                                              // code
+            WL := WL - {w};                                                                                              // harness
           } else {                                                                                                       // harness
             c_pc := P1;                                                                                                  // harness
           } // code
@@ -137,9 +137,9 @@ module TwoPhaseCommit
                end                                                                                                       
              end                                                                                                         
            */                                                                                                            
-          if WL2 != {} {                                                                                                 // code
+          if WL2 != {} { // w in WL2                                                                                     // code
             if |vote_buf| > 0 {                                                                                          // harness
-              var w := *; assume w in WL2;                                                                               // code
+              var w := *; assume w in WL2;                                                                               // harness
               vote := vote_buf[0];                                                                                       // code
 
               if vote == No {                                                                                            // code
@@ -147,7 +147,7 @@ module TwoPhaseCommit
               }                                                                                                          // code
 
               vote_buf := vote_buf[1..];                                                                                 // harness
-              WL2 := WL2 - {w};                                                                                          // code
+              WL2 := WL2 - {w};                                                                                          // harness
             } // harness
           } else {                                                                                                       // harness
             c_pc := P2;                                                                                                  // harness
@@ -169,17 +169,17 @@ module TwoPhaseCommit
             committed := true;                                                                                           // code
           } // code
 
-          c_p2_is_run := true;                                                                                           // code
+          c_p2_is_run := true;                                                                                           // annot
           c_pc := P3;                                                                                                    // harness
         } else if c_pc == P3 {                                                                                           // harness
           /* for w in Ps:                                                                                                
                send w reply                                                                                              
              end                                                                                                         
            */                                                                                                            
-          if WL3 != {} {                                                                                                 // code
-            var w := *; assume w in WL;                                                                                  // code
+          if WL3 != {} { // w in WL3                                                                                     // code
+            var w := *; assume w in WL3;                                                                                  // harness
             dec_buf := dec_buf[w := dec_buf[w] + [reply]];                                                               // code
-            WL3 := WL3 - {w};                                                                                            // code
+            WL3 := WL3 - {w};                                                                                            // harness
           } else {                                                                                                       // harness
             c_pc := P4;                                                                                                  // harness
           } // code
@@ -188,13 +188,13 @@ module TwoPhaseCommit
                _ <- recv                                                                                                 
              end                                                                                                         
            */                                                                                                            
-          if WL4 != {} {                                                                                                 // code
+          if WL4 != {} { // w in WL4                                                                                     // code
             if |ack_buf| != 0 {                                                                                          // harness
-              var w := *;   assume w in WL;                                                                              // code
+              var w := *;   assume w in WL4;                                                                              // harness
               var ack := ack_buf[0];                                                                                     // code
 
               ack_buf := ack_buf[1..];                                                                                   // harness
-              WL4 := WL4 - {w};                                                                                          // code
+              WL4 := WL4 - {w};                                                                                          // harness
             } // harness
           } else {                                                                                                       // harness
             c_pc := P5;                                                                                                  // harness

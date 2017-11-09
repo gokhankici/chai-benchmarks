@@ -1,7 +1,7 @@
-// code       : 50
-// annot      : 50
+// code       : 40
+// annot      : 52
 // inv        : 19
-// harness    : 66
+// harness    : 73
 
 module RaftLeaderElection {
   function domain<U,V>(m: map<U,V>) : set<U>                                                                             
@@ -41,7 +41,7 @@ module RaftLeaderElection {
     assume domain(f_vote) == Fs;                                                                                         // harness
     assume forall f,c :: f in Fs && c == f_vote[f] ==> c in Cs;                                                          // harness
 
-    var f_pid : map<nat, nat>  := *;                                                                                     // code
+    var f_pid : map<nat, nat>  := *;                                                                                     // harness
     assume domain(f_pid) == Fs;                                                                                          // harness
     assume forall f,c :: f in Fs && c == f_pid[f] ==> c in Cs;                                                           // harness
 
@@ -91,7 +91,7 @@ module RaftLeaderElection {
     // history                                                                                                         
     // #########################################################################                                      
     // f_votes[f] = Term -> Candidate voted for                                                                      
-    var f_votes : map<nat, map<nat, nat>> := *;                                                                          // code
+    var f_votes : map<nat, map<nat, nat>> := *;                                                                          // annot
     assume domain(f_votes) == Fs;                                                                                        // harness
     assume forall f,t :: f in Fs ==> (t in f_votes[f] <==> t in (set c | c in Cs :: c_term[c]));                         // annot
     assume forall f,c :: f in Fs && c in Cs && f_voted[f] ==> f_votes[f][c_term[c]] == c;                                // annot
@@ -203,10 +203,10 @@ module RaftLeaderElection {
              done                                                                                                      
              <P2>                                                                                                     
            */                                                                                                        
-          if f_WL[f] != {} {                                                                                             // code
-            var c := *; assume c in f_WL[f];                                                                             // code
+          if f_WL[f] != {} { // c in f_WL[f]                                                                             // code
+            var c := *; assume c in f_WL[f];                                                                             // harness
 
-            f_c := f_c[f := c];                                                                                          // code
+            f_c := f_c[f := c];                                                                                          // harness
             f_pc := f_pc[f := P1];                                                                                       // harness
           } else {                                                                                                       // harness
             f_pc := f_pc[f := P2];                                                                                       // harness
@@ -217,7 +217,7 @@ module RaftLeaderElection {
              */                                                                                                         
             var t := *; var pid := *; assume (t,pid) in f_ReqVote_buf[f];                                                // code
 
-            f_pid := f_pid[f := pid];                                                                                    // code
+            f_pid := f_pid[f := pid];                                                                                    // harness
 
             f_ReqVote_buf := f_ReqVote_buf[f := f_ReqVote_buf[f] - multiset{(t,pid)}];                                   // harness
 
@@ -251,7 +251,7 @@ module RaftLeaderElection {
               k := k[pid := k[pid] - 1];                                                                                 // annot
               l := l[pid := l[pid] + 1];                                                                                 // annot
 
-              f_votes := f_votes[f := f_votes[f][term := pid]];                                                          // code
+              f_votes := f_votes[f := f_votes[f][term := pid]];                                                          // annot
             }                                                                                                            // code
 
             /* send pid ReqVoteResp(s,term)                                                                              
@@ -287,9 +287,9 @@ module RaftLeaderElection {
              done                                                                                                        
              <P3>                                                                                                        
            */                                                                                                            
-          if c_WL[c] != {} {                                                                                             // code
-            var f := *; assume f in c_WL[c]; assume f in Fs;                                                             // code
-            c_f := c_f[c := f];                                                                                          // code
+          if c_WL[c] != {} { // f in c_WL[c]                                                                             // code
+            var f := *; assume f in c_WL[c]; assume f in Fs;                                                             // harness
+            c_f := c_f[c := f];                                                                                          // harness
             c_pc := c_pc[c := P1];                                                                                       // harness
           } else {                                                                                                       // harness
             c_pc := c_pc[c := P3];                                                                                       // harness
@@ -297,10 +297,10 @@ module RaftLeaderElection {
         } else if c_pc[c] == P1 {                                                                                        // harness
           /* send f ReqVote(term,c)                                                                                      
            */                                                                                                           
-          var f := c_f[c];                                                                                               // code
-          var term := c_term[c];                                                                                         // code
+          var f := c_f[c];                                                                                               // harness
+          var term := c_term[c];
 
-          f_ReqVote_buf := f_ReqVote_buf[f := f_ReqVote_buf[f] + multiset{(term,c)}];                                    // code
+          f_ReqVote_buf := f_ReqVote_buf[f := f_ReqVote_buf[f] + multiset{(c_term[c],c)}];                               // code
           c_pc := c_pc[c := P2];                                                                                         // harness
         } else if c_pc[c] == P2 {                                                                                        // harness
           if * {                                                                                                         // harness
