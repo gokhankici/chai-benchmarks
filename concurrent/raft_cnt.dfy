@@ -1,8 +1,3 @@
-// code       : 40
-// annot      : 52
-// inv        : 19
-// harness    : 73
-
 module RaftLeaderElection {
   function domain<U,V>(m: map<U,V>) : set<U>                                                                             
     ensures domain(m) == set u : U | u in m :: u;                                                                        

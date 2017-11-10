@@ -1,8 +1,3 @@
-// code       : 55
-// annot      : 24
-// inv        : 13
-// harness    : 61
-
 module TwoPhaseCommit
 {                                                                         
   datatype VoteType     = Yes | No                                                                                       // code
