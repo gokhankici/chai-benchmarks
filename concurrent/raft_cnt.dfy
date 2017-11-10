@@ -124,7 +124,7 @@ module RaftLeaderElection {
     // #########################################################################                                         
     // invariants                                                                                                       
     // #########################################################################                                       
-    invariant                                                                                                            // annot
+    invariant
       ( domain(f_WL)              == Fs                                                                                  // annot
       && domain(f_ReqVote_buf)     == Fs                                                                                 // annot
       && domain(f_c)               == Fs                                                                                 // annot

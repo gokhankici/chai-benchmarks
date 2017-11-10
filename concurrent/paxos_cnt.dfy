@@ -146,7 +146,7 @@ module PaxosSingle {
 
     while WL_main != {}                                                                                                  // harness
     free invariant WL_main <= Ps + As;                                                                                   // annot
-    free invariant                                                                                                       // annot
+    free invariant
         ( domain(Acc_Ns)             == As                                                                               // annot
         && domain(Acc_Max_Seen_N)     == As                                                                              // annot
         && domain(Acc_Max_Accepted_N) == As                                                                              // annot

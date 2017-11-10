@@ -15,7 +15,7 @@ module TwoPhaseCommit
   method {:timeLimit 0} TwoPhase( Ps : set<nat> // workers                                                               // code
                  , c  : nat      // coordinator                                                                          // code
                  )
-    requires forall p :: p in Ps ==> p != c                                                                              // annot
+    requires forall p :: p in Ps ==> p != c
     decreases *
   {
     // ################################################################
