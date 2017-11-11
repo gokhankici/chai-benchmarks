@@ -52,6 +52,7 @@ class GlobalStats(object):
                 ('VC (s)',      "%6s",  self.icet_vc),
                 ('\\#L',        "%4s",  self.dafny_stats.code), 
                 ('\\#A (\\#I)', "%10s", "%d (%d)" % (self.dafny_stats.annot + self.dafny_stats.inv, self.dafny_stats.inv)),
+                ('\\#H',        "%4s",  self.dafny_stats.harness), 
                 ('Ver (s)',     "%9s",  self.dafny_t)]
 
     def header(self):
@@ -113,10 +114,6 @@ if __name__ == '__main__':
             'Single-Decree Paxos',
             GlobalStats(icet_rw=1.66, icet_vc=0.39))]
     
-    # paxos
-    FILES[3][2].icet_stats.code  = 87
-    FILES[3][2].icet_stats.annot = 44
-
     stat_total = GlobalStats()
 
     print " & ".join(["", stat_total.header()]), '\\\\'

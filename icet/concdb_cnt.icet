@@ -1,13 +1,7 @@
-prog( concdb,                                                                                                            %% 
-      Decls,                                                                                                             %% 
-      ensures(Property),                                                                                                 %% 
-      par([sym(C,c,Client), while(db, true, DBLoop)]),                                                                   %% code
-      while(db, true, DBLoop)                                                                                            %% 
-    ) :-                                                                                                                 %% 
+prog(concdb, Decls, ensures(true), par([sym(C,c,Client), while(db, true, DBLoop)]), while(db, true, DBLoop)) :-          %% code
     append([decl(db, int),                                                                                               %% code
             decl(c, set)], LocalDecls, Decls),                                                                           %% code
-    append(ClientVars, DBVars, LocalDecls),                                                                              %% 
-    Property=true,                                                                                                       %% 
+    append(ClientVars, DBVars, LocalDecls),                                                                              %% code
     ClientVars=[ decl(x, set),                                                                                           %% code
                  decl(mykey, map(set(c), int)),                                                                          %% code
                  decl(v, map(set(c), int)),                                                                              %% code
@@ -19,11 +13,10 @@ prog( concdb,                                                                   
                      send(C, e_pid(db), pair(C, pair(0, pair(mykey, v)))),                                               %% code
                      recv(C, e_pid(db), pair(status_a, vv)),                                                             %% code
                      send(C, e_pid(db), pair(C, pair(1, pair(mykey, v)))),                                               %% code
-                     pre(C, forall([decl(i,int)],                                                                        %% 
-                                  implies(and([here(i), elem(i,c), ref(status_a,i)=1]),                                  %% inv
-                                          and([ref(domain,ref(mykey,i))=1                                                %% inv
-                                               ,ref(the_db,ref(mykey,i))=ref(v,i)])))),                                  %% inv
-                     group( recv(C, e_pid(db), pair(status_b, vv))                                                       %% 
+                     pre(C, forall([decl(i,int)], implies(and([here(i), elem(i,c), ref(status_a,i)=1]),                  %% inv
+                                                          and([ref(domain,ref(mykey,i))=1                                %% inv
+                                                               ,ref(the_db,ref(mykey,i))=ref(v,i)])))),                  %% inv
+                     group( recv(C, e_pid(db), pair(status_b, vv))                                                       %% code
                             , assert(C, implies(and([ref(status_a,C)=1, ref(status_b,C)=1]), ref(vv,C)=ref(v,C)))        %% inv
                           )                                                                                              %% 
                    ])                                                                                                    %% 

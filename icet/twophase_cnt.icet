@@ -1,4 +1,4 @@
-prog( twophase                                                                                                           %% 
+prog( twophase                                                                                                           %% code
       , [/* Process IDs */                                                                                               %% 
           decl(c, int)                                                                                                   %% code
           , decl(p, set)                                                                                                 %% code
@@ -16,10 +16,7 @@ prog( twophase                                                                  
           , decl(val, map(set(p), int))                                                                                  %% code
           , decl(msg, map(set(p), int))                                                                                  %% code
           , decl(decision, map(set(p), int))                                                                             %% code
-      ]                                                                                                                  %% 
-      , ensures(Agreement)                                                                                               %% 
-      , T                                                                                                                %% 
-    ) :-                                                                                                                 %% 
+      ], ensures(Agreement), T) :-                                                                                       %% code
 
     Agreement=and([forall([decl(i,int)], implies(and([elem(i,p), committed=1]), ref(value,i)=prop))                      %% annot
                    ,forall([decl(i,int)], implies(and([elem(i,p), committed=0]), ref(value,i)=0))                        %% annot
