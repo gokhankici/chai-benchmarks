@@ -19,15 +19,6 @@ prog(raft_single, Decls, ensures(Safety), Program) :-
             , decl(l, map(set(c), int))
             , decl(c0, int)
             , decl(f0, int)
-            
-              /* k[c0] : #{f | f.term < c.term } */
-            %% , decl_card(k, c, c0, f0, and([elem(f0,f),ref(fterm,f0) < ref(cterm,c0)]))
-              /* l[c0] : #{f | f.term < c.term } */
-            %% , decl_card(l, c, c0, f0, and([ elem(f0,f)
-            %%                               , ref(fterm,f0) = ref(cterm,c0)
-            %%                               , ref(votedFor,f0) = c0
-            %%                               , ref(ref(votes,f0),ref(cterm,c0)) = c0
-            %%                               ]))
             ]
     
     %% , Safety=forall([decl(i,int)], implies(and([elem(i,c), ref(isLeader,i)=1]), card(f)/2 < ref(l,i) + ref(m,i)))
@@ -91,8 +82,8 @@ prog(raft_single, Decls, ensures(Safety), Program) :-
 		   ),
            group( 
   		          pre(C, forall([decl(i,int)], implies(and([elem(i,c), ref(isLeader,i)=1]), card(f)<ref(count,i)*2)))
-                , seq([assume(C,forall([decl(i,int)], 0 =< ref(k,i))),
-                       assume(C,forall([decl(i,int)], 0 =< ref(l,i))),
+                , seq([assume(C, forall([decl(i,int)], 0 =< ref(k,i))),
+                       assume(C, forall([decl(i,int)], 0 =< ref(l,i))),
                        assume(C, elem(f0,f)),
                        assume(C,forall([decl(i,int),decl(j,int)], 
                                               implies( and([elem(i,c), elem(j,c), ref(l,i) > card(f)/2, ref(l,j) > card(f)/2]),
