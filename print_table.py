@@ -112,12 +112,18 @@ if __name__ == '__main__':
             (('paxos_cnt.icet', 'paxos_cnt.dfy'),
             'Single-Decree Paxos',
             GlobalStats(icet_rw=1.66, icet_vc=0.39))]
+    
+    # raft
+    FILES[2][2].icet_stats.code  = 54
+    FILES[2][2].icet_stats.annot = 12
+    # paxos
+    FILES[3][2].icet_stats.code  = 87
+    FILES[3][2].icet_stats.annot = 44
 
     stat_total = GlobalStats()
 
     print " & ".join(["", stat_total.header()]), '\\\\'
     print "\\midrule"
-    print
 
     for ((icet_filename, dafny_filename), name, both_stat) in FILES:
         update_stats(op.join(ICET_FOLDER,  icet_filename),  both_stat.icet_stats)
