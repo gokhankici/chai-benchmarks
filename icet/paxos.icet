@@ -115,7 +115,11 @@ prog('paxos', Decls, Safety, T, sym(A,a,while(A, true, AccLoop))) :-
                  
 
                  pre(P,forall([decl(qa,int),decl(qp,int)],
-                             implies( and([elem(qa,a),elem(qp,p),ref(ready,qp)=1,ref(t,qp) =< ref(a_w_t,qa),ref(k,qp)+ref(l,qp) > card(a)/2])
+                             implies( and([elem(qa,a),
+                                           elem(qp,p),
+                                           ref(ready,qp)=1,
+                                           ref(t,qp) =< ref(a_w_t,qa),
+                                           ref(k,qp)+ref(l,qp) > card(a)/2])
                                     , ref(a_w,qa)=ref(x,qp)))),
                  Assumptions,
                  

@@ -16,6 +16,9 @@ args = parser.parse_args()
 
 files = args.files
 
+# print max([len(line.rstrip()) for line in fileinput.input(files)])
+# sys.exit(0)
+
 assert max([len(line.rstrip()) for line in fileinput.input(files)]) < 120
 
 for line in fileinput.input(files):

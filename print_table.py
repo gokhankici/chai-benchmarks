@@ -3,6 +3,8 @@
 import copy
 import os.path as op
 
+NAME_FMT = "%-20s"
+
 class FileStats(object):
     ANNOTS = ['code', 'annot', 'inv', 'harness']
 
@@ -45,7 +47,7 @@ class GlobalStats(object):
         
     def column_values(self):
         return [('\\#L',        "%4s",  self.icet_stats.code), 
-                ('\\#A*',       "%4s",  self.icet_stats.annot + self.icet_stats.inv), 
+                ('\\#A (\\#I)', "%10s", "%d (%d)" % (self.icet_stats.annot + self.icet_stats.inv, self.icet_stats.inv)),
                 ('RW (s)',      "%6s",  self.icet_rw), 
                 ('VC (s)',      "%6s",  self.icet_vc),
                 ('\\#L',        "%4s",  self.dafny_stats.code), 
@@ -78,50 +80,51 @@ class GlobalStats(object):
     def __iadd__(self, d2):
         return self + d2
 
-NAME_FMT      = "%-20s"
-THIS_FOLDER   = op.dirname(op.abspath(op.realpath(__file__)))
-ICET_FOLDER   = op.join(THIS_FOLDER, 'icet')
-DAFNY_FOLDER  = op.join(THIS_FOLDER, 'dafny-concurrent')
+def update_stats(filename, stat):
+    if not op.isfile(filename):
+        return
 
-FILES = [(('concdb.icet', 'kv_cnt.dfy'),
-          'Key-Value Store',
-          GlobalStats(icet_rw=0.02, icet_vc=0.02)),
+    with open(filename, 'r') as f:
+        for line in f:
+            l = line.rstrip()
+            for c in FileStats.ANNOTS:
+                if l.endswith("%s %s" % (stat.comment, c)):
+                    stat[c] += 1
+                    break
 
-         (('twophase_cnt.icet', 'twophase_cnt.dfy'),
-          'Two-Phase Commit',
-          GlobalStats(icet_rw=0.09, icet_vc=0.02, dafny_t=12.81)),
+if __name__ == '__main__':
+    THIS_FOLDER   = op.dirname(op.abspath(op.realpath(__file__)))
+    ICET_FOLDER   = op.join(THIS_FOLDER, 'icet')
+    DAFNY_FOLDER  = op.join(THIS_FOLDER, 'dafny-concurrent')
 
-         (('raft_single2.icet', 'raft_cnt.dfy'),
-          'Raft Leader Election',
-          GlobalStats(icet_rw=0.05, icet_vc=0.03, dafny_t=301.68)),
+    FILES = [(('concdb_cnt.icet', 'kv_cnt.dfy'),
+            'Key-Value Store',
+            GlobalStats(icet_rw=0.02, icet_vc=0.02)),
 
-         (('paxos.icet', 'paxos_cnt.dfy'),
-          'Single-Decree Paxos',
-          GlobalStats(icet_rw=1.66, icet_vc=0.39))]
+            (('twophase_cnt.icet', 'twophase_cnt.dfy'),
+            'Two-Phase Commit',
+            GlobalStats(icet_rw=0.09, icet_vc=0.02, dafny_t=12.81)),
 
-stat_total = GlobalStats()
+            (('raft_single2_cnt.icet', 'raft_cnt.dfy'),
+            'Raft Leader Election',
+            GlobalStats(icet_rw=0.05, icet_vc=0.03, dafny_t=301.68)),
 
-print " & ".join(["", stat_total.header()]), '\\\\'
-print "\\midrule"
+            (('paxos_cnt.icet', 'paxos_cnt.dfy'),
+            'Single-Decree Paxos',
+            GlobalStats(icet_rw=1.66, icet_vc=0.39))]
 
-for ((icet_filename, dafny_filename), name, both_stat) in FILES:
-    def update_stats(filename, stat):
-        if not op.isfile(filename):
-            return
+    stat_total = GlobalStats()
 
-        with open(filename, 'r') as f:
-            for line in f:
-                l = line.rstrip()
-                for c in FileStats.ANNOTS:
-                    if l.endswith("%s %s" % (stat.comment, c)):
-                        stat[c] += 1
-                        break
+    print " & ".join(["", stat_total.header()]), '\\\\'
+    print "\\midrule"
+    print
 
-    update_stats(op.join(ICET_FOLDER,  icet_filename),  both_stat.icet_stats)
-    update_stats(op.join(DAFNY_FOLDER, dafny_filename), both_stat.dafny_stats)
+    for ((icet_filename, dafny_filename), name, both_stat) in FILES:
+        update_stats(op.join(ICET_FOLDER,  icet_filename),  both_stat.icet_stats)
+        update_stats(op.join(DAFNY_FOLDER, dafny_filename), both_stat.dafny_stats)
 
-    print " & ".join([NAME_FMT % name, both_stat.row()]), '\\\\'
-    stat_total += both_stat
+        print " & ".join([NAME_FMT % name, both_stat.row()]), '\\\\'
+        stat_total += both_stat
 
-print "\\midrule"
-print " & ".join([NAME_FMT % "\\textbf{Total}", stat_total.row()]), '\\\\'
+    print "\\midrule"
+    print " & ".join([NAME_FMT % "\\textbf{Total}", stat_total.row()]), '\\\\'

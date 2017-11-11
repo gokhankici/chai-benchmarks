@@ -86,7 +86,10 @@ prog(raft_single, Decls, ensures(Safety), Program) :-
                        assume(C, forall([decl(i,int)], 0 =< ref(l,i))),
                        assume(C, elem(f0,f)),
                        assume(C,forall([decl(i,int),decl(j,int)], 
-                                              implies( and([elem(i,c), elem(j,c), ref(l,i) > card(f)/2, ref(l,j) > card(f)/2]),
+                                              implies( and([elem(i,c), 
+                                                            elem(j,c), 
+                                                            ref(l,i) > card(f)/2, 
+                                                            ref(l,j) > card(f)/2]),
                                                        and([ ref(ref(votes,f0),ref(cterm,i))=i
                                                              , ref(ref(votes,f0),ref(cterm,j))=j
                                                              , ref(cterm,i) =< ref(fterm, f0)
