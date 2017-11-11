@@ -113,9 +113,6 @@ if __name__ == '__main__':
             'Single-Decree Paxos',
             GlobalStats(icet_rw=1.66, icet_vc=0.39))]
     
-    # raft
-    FILES[2][2].icet_stats.code  = 54
-    FILES[2][2].icet_stats.annot = 12
     # paxos
     FILES[3][2].icet_stats.code  = 87
     FILES[3][2].icet_stats.annot = 44
