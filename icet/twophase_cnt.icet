@@ -1,21 +1,21 @@
 prog( twophase                                                                                                           %% 
       , [/* Process IDs */                                                                                               %% 
-          decl(c, int)                                                                                                   %% 
-          , decl(p, set)                                                                                                 %% 
+          decl(c, int)                                                                                                   %% code
+          , decl(p, set)                                                                                                 %% code
           /* c's variables */                                                                                            %% 
-          , decl(abort, int)                                                                                             %% 
-          , decl(committed, int)                                                                                         %% 
-          , decl(prop, int)                                                                                              %% 
-          , decl(reply, int)                                                                                             %% 
-          , decl(ack, int)                                                                                               %% 
-          , decl(cmsg, int)                                                                                              %% 
+          , decl(abort, int)                                                                                             %% code
+          , decl(committed, int)                                                                                         %% code
+          , decl(prop, int)                                                                                              %% code
+          , decl(reply, int)                                                                                             %% code
+          , decl(ack, int)                                                                                               %% code
+          , decl(cmsg, int)                                                                                              %% code
           /* p's variables */                                                                                            %% 
-          , decl(value, map(set(p), int))                                                                                %% 
-          , decl(bottom, map(set(p), int))                                                                               %% 
-          , decl(id, map(set(p), int))                                                                                   %% 
-          , decl(val, map(set(p), int))                                                                                  %% 
-          , decl(msg, map(set(p), int))                                                                                  %% 
-          , decl(decision, map(set(p), int))                                                                             %% 
+          , decl(value, map(set(p), int))                                                                                %% code
+          , decl(bottom, map(set(p), int))                                                                               %% code
+          , decl(id, map(set(p), int))                                                                                   %% code
+          , decl(val, map(set(p), int))                                                                                  %% code
+          , decl(msg, map(set(p), int))                                                                                  %% code
+          , decl(decision, map(set(p), int))                                                                             %% code
       ]                                                                                                                  %% 
       , ensures(Agreement)                                                                                               %% 
       , T                                                                                                                %% 
@@ -54,17 +54,16 @@ prog( twophase                                                                  
                )                                                                                                         %% code
            ]),                                                                                                           %% code
 
-    P2=seq([                                                                                                             %% code
-                  assign(P, value, 0),                                                                                   %% code
-                  recv(P, e_pid(c), pair(id, val)),                                                                      %% code
-                  ite(c, ndet,                                                                                           %% code
-                      assign(P, msg, 0),                                                                                 %% code
-                      assign(P, msg, 1)                                                                                  %% code
-                     ),                                                                                                  %% code
-                  send(P, e_var(id), msg),                                                                               %% code
-                  recv(P, e_pid(c), pair(id, decision)),                                                                 %% code
-                  ite(P, ref(decision,P)=1, assign(P, value, ref(val,P)), skip),                                         %% code
-                  send(P, e_var(id), ack)                                                                                %% code
-              ]),                                                                                                        %% code
-    T=(par([P1, sym(P, p, P2)]))                                                                                         %% 
-.                                                                                                                        %% 
+    P2=seq([assign(P, value, 0),                                                                                         %% code
+            recv(P, e_pid(c), pair(id, val)),                                                                            %% code
+            ite(c, ndet,                                                                                                 %% code
+                assign(P, msg, 0),                                                                                       %% code
+                assign(P, msg, 1)                                                                                        %% code
+               ),                                                                                                        %% code
+            send(P, e_var(id), msg),                                                                                     %% code
+            recv(P, e_pid(c), pair(id, decision)),                                                                       %% code
+            ite(P, ref(decision,P)=1, assign(P, value, ref(val,P)), skip),                                               %% code
+            send(P, e_var(id), ack)                                                                                      %% code
+           ]),                                                                                                           %% code
+    T=(par([P1, sym(P, p, P2)]))                                                                                         %% code
+.
