@@ -1,0 +1,366 @@
+* Two-Phase Commit
+
+** Plain (Dafny)
+
+#+BEGIN_SRC dafny
+//  annotations
+var c_p2_is_run := false;
+var Ps_p0_is_run := map p | p in Ps :: false; assume domain(Ps_p0_is_run) == Ps;
+var Ps_p2_is_run := map p | p in Ps :: false; assume domain(Ps_p2_is_run) == Ps;
+var Ps_p3_is_run := map p | p in Ps :: false; assume domain(Ps_p3_is_run) == Ps;
+invariant domain(prep_buf) == Ps;
+invariant domain(dec_buf) == Ps;
+invariant domain(Ps_pc) == Ps;
+invariant domain(Decision) == Ps;
+invariant domain(Val) == Ps;
+invariant domain(Value) == Ps;
+invariant domain(Id) == Ps;
+invariant domain(Msg) == Ps;
+invariant domain(Ps_p0_is_run) == Ps;
+invariant domain(Ps_p2_is_run) == Ps;
+invariant domain(Ps_p3_is_run) == Ps;
+c_p2_is_run := true;
+Ps_p0_is_run := Ps_p0_is_run[p := true];
+Ps_p2_is_run := Ps_p2_is_run[p := true];
+Ps_p3_is_run := Ps_p3_is_run[p := true];
+assert committed ==> (forall p :: p in Ps ==> Value[p] == proposal);
+
+//  invariants
+invariant forall p :: p in Ps && p !in main_WL ==> Ps_pc[p] == P5;
+invariant c_p2_is_run <==> c_pc in {P3, P4, P5, P6};
+invariant forall p :: p in Ps ==> ( Ps_p0_is_run[p] <==> Ps_pc[p] in {P1, P2, P3, P4, P5} );
+invariant forall p :: p in Ps ==> ( Ps_p2_is_run[p] <==> Ps_pc[p] in {P3, P4, P5} );
+invariant forall p :: p in Ps ==> ( Ps_p3_is_run[p] <==> Ps_pc[p] in {P4, P5} );
+invariant forall p,i :: p in Ps && 0 <= i < |prep_buf[p]| ==> prep_buf[p][i] == (c, proposal);
+invariant forall p :: p in Ps && Ps_p0_is_run[p] ==> Id[p] == c && Val[p] == proposal;
+invariant forall p :: p in Ps && |dec_buf[p]| > 0 ==> c_p2_is_run;
+invariant forall p,i :: p in Ps && c_p2_is_run && 0 <= i < |dec_buf[p]| ==> dec_buf[p][i] == reply;
+invariant forall p :: p in Ps && Ps_p2_is_run[p] ==> c_p2_is_run && Decision[p] == reply;
+invariant c_p2_is_run ==> (reply == Commit <==> committed);
+invariant forall p :: p in Ps && Ps_p3_is_run[p] && Decision[p] == Commit ==> Value[p] == Val[p];
+#+END_SRC
+
+** Synchronized (IceT)
+
+#+BEGIN_SRC prolog
+%%  annotations
+Agreement=and([forall([decl(i,int)], implies(and([elem(i,p), committed=1]), ref(value,i)=prop))
+               ,forall([decl(i,int)], implies(and([elem(i,p), committed=0]), ref(value,i)=0))
+              ]),
+
+%%  invariants
+Inv0=forall([decl(i,int)], implies(and([elem(i,r)]), and([ref(value,i)=0, ref(val,i)=prop]))),
+Inv1=forall([decl(i,int)], and([ implies(and([elem(i,rr), committed=1]), ref(value,i)=ref(val,i)),
+                                 implies(and([elem(i,p), committed=0]), ref(value,i)=0) ])),
+#+END_SRC
+
+* Raft
+
+** Plain (Dafny)
+   
+#+BEGIN_SRC dafny
+//  annotations
+requires |Cs| > 0;
+requires |Fs| >= 2;
+requires Fs !! Cs;
+var f_votes : map<nat, map<nat, nat>> := *;
+assume forall f,t :: f in Fs ==> (t in f_votes[f] <==> t in (set c | c in Cs :: c_term[c]));
+assume forall f,c :: f in Fs && c in Cs && f_voted[f] ==> f_votes[f][c_term[c]] == c;
+var k : map<nat, nat> := map c | c in Cs :: len(Fs);
+var l : map<nat, nat> := map c | c in Cs :: 0;
+var o_t : map<nat, nat> := map c | c in Cs :: 0;
+var o_f : map<nat, nat> := map c | c in Cs :: 0;
+  ( domain(f_WL)              == Fs
+  && domain(f_ReqVote_buf)     == Fs
+  && domain(f_c)               == Fs
+  && domain(f_pc)              == Fs
+  && domain(f_term)            == Fs
+  && domain(f_vote)            == Fs
+  && domain(f_voted)           == Fs
+  && domain(c_ReqVoteResp_buf) == Cs
+  && domain(c_WL)              == Cs
+  && domain(c_count)           == Cs
+  && domain(c_f)               == Cs
+  && domain(c_leader)          == Cs
+  && domain(c_pc)              == Cs
+  && domain(k)                 == Cs
+  && domain(l)                 == Cs
+  && domain(f_votes)           == Fs
+  && domain(o_t)               == Cs
+  && domain(o_f)               == Cs
+invariant main_WL <= Fs + Cs;
+          assume k[pid] > 0;
+          k := k[pid := k[pid] - 1];
+          l := l[pid := l[pid] + 1];
+          f_votes := f_votes[f := f_votes[f][term := pid]];
+          if s {
+            o_t := o_t[pid := o_t[pid] + 1];
+          } else {
+            o_f := o_f[pid := o_f[pid] + 1];
+          }
+          if s {
+            assume o_t[c] > 0;
+            o_t := o_t[c := o_t[c] - 1];
+          } else {
+            assume o_f[c] > 0;
+            o_f := o_f[c := o_f[c] - 1];
+assert forall c :: c in Cs && c_leader[c] ==> l[c] * 2 > |Fs|;
+assume(forall c1,c2 ::
+  (c1 in Cs && c2 in Cs && l[c1] * 2 > |Fs| && l[c2] * 2 > |Fs|) ==>
+  (exists f :: f in Fs && f_term[f] == c_term[c1] && f_term[f] == c_term[c2] && f_vote[f] == c1 && f_vote[f] == c2) ||
+  (exists f :: f in Fs && f_term[f] == c_term[c1] && f_term[f] >  c_term[c2] && f_vote[f] == c1 && f_votes[f][c_term[c2]] == c2) ||
+  (exists f :: f in Fs && f_term[f] > c_term[c1] && f_term[f] > c_term[c2] && f_votes[f][c_term[c1]] == c1 && f_votes[f][c_term[c2]] == c2));
+assert (forall c1, c2 :: (c1 in Cs && c2 in Cs && c_term[c1] == c_term[c2] && c_leader[c1] && c_leader[c2] ==> c1 == c2));
+
+//  invariants
+invariant forall c,f :: c in Cs && f in c_WL[c] ==> f in Fs;
+invariant forall f,c :: f in Fs && c in f_WL[f] ==> c in Cs;
+invariant forall c,f :: c in Cs && f == c_f[c] ==> f in Fs;
+invariant forall f,c :: f in Fs && c == f_c[f] ==> c in Cs;
+invariant forall f,c :: f in Fs && f_vote[f] == c ==> c in Cs;
+invariant forall c :: c in Cs ==> k[c] >= 0;
+invariant forall c :: c in Cs ==> l[c] >= 0;
+invariant forall c :: c in Cs ==> c_count[c] >= 0;
+invariant forall c :: c in Cs ==> |Fs| >= k[c] + l[c];
+invariant forall f :: f in Fs && f !in main_WL ==> f_pc[f] == P2;
+invariant forall c :: c in Cs && c !in main_WL ==> c_pc[c] == P3;
+invariant forall c :: c in Cs ==> o_t[c] >= 0;
+invariant forall c :: c in Cs ==> o_f[c] >= 0;
+invariant forall c :: c in Cs ==> |c_ReqVoteResp_buf[c]| >= o_t[c] + o_f[c];
+invariant forall c :: c in Cs ==> l[c] >= o_t[c] + c_count[c];
+invariant forall c :: c in Cs && c_leader[c] ==> c_count[c] * 2 > |Fs|;
+invariant forall f,t,c :: f in Fs && 0 < |f_ReqVote_buf[f]| && (t,c) in f_ReqVote_buf[f] ==> c in Cs && c_term[c] == t;
+invariant forall f,t :: f in Fs ==> (t in f_votes[f] <==> t in (set c | c in Cs :: c_term[c]));
+invariant forall f,c,t :: f in Fs && f_voted[f] && f_vote[f] == c && c_term[c] == t ==> f_votes[f][t] == c;
+#+END_SRC
+
+** Synchronized (IceT)
+
+#+BEGIN_SRC prolog
+%%  annotations
+decl(votes,      map(set(f), map(int, int))),
+decl(k,          map(set(c), int)),
+decl(l,          map(set(c), int)),
+decl(f0,         int)
+Safety=forall([decl(i,int), decl(j,int)], implies(and([elem(i,c), elem(j,c),
+                                                       ref(cterm,i)=ref(cterm,j),
+                                                       ref(isLeader,j)=1, ref(isLeader,i)=1]), i=j)),
+                             assign(F, votes, upd(votes, fterm, id)),
+P2= seq([pre(C, and([ref(k,C) = card(f), ref(l,C) = 0, ref(count,C) = 0, ref(isLeader, C) = 0])),
+         assume(C, forall([decl(i,int)], ref(k,i) = card(f))),
+         assume(C, forall([decl(i,int)], ref(l,i) = 0)),
+                   if(C, and([ref(success_c,C)=1,ref(votedFor,F)=C, ref(fterm,F)=ref(cterm,C)]),
+                      seq([ assign(C, l, ref(l,C) + 1),
+                            assign(C, k, ref(k,C) - 1),
+                            assume(C, 0 < ref(l,C)),
+                            assume(C, 0 =< ref(k,C))
+                          ]))
+                     assume(C, forall([decl(i,int),decl(j,int)],
+                                      implies( and([elem(i,c), elem(j,c), ref(l,i)>card(f)/2, ref(l,j)>card(f)/2]),
+                                               and([ ref(ref(votes,f0),ref(cterm,i))=i,
+                                                     ref(ref(votes,f0),ref(cterm,j))=j,
+                                                     ref(cterm,i) =< ref(fterm, f0),
+                                                     ref(cterm,i) =< ref(fterm, f0)])))),
+
+%%  invariants
+seq([ pre(C, forall([decl(i,int)], implies(elem(i,c), and([ ref(k,i)+ref(l,i) =< card(f),
+                                                            ref(count,i)=ref(l,i)])))),
+group(pre(C, forall([decl(i,int)], implies(and([elem(i,c), ref(isLeader,i)=1]), card(f)<ref(count,i)*2))),
+      seq([ assume(C, forall([decl(i,int)], 0 =< ref(k,i))),
+            assume(C, forall([decl(i,int)], 0 =< ref(l,i))),
+            assume(C, elem(f0,f)),
+            pre(C, forall([decl(i,int), decl(j,int)],
+                          implies(and([elem(i,c), elem(j,c),
+                                       ref(count,i) > card(f)/2, ref(count,j) > card(f)/2,
+                                       ref(cterm,i)=ref(cterm,j),
+                                       ref(isLeader,j)=1, ref(isLeader,i)=1]),
+                                  i=j))),
+#+END_SRC
+
+* Paxos
+
+** Plain (Dafny)
+   
+#+BEGIN_SRC dafny
+//  annotations
+requires |Ps| > 0
+requires |As| >= 2
+requires Ps !! As
+assume forall p1,p2 :: p1 in Ps && p2 in Ps ==> (p1 == p2 <==> Prop_N[p1] == Prop_N[p2]);
+var Prop_Exec_P5 : map<nat, bool> := map p | p in Ps :: false;
+var Prop_Exec_P6 : map<nat, bool> := map p | p in Ps :: false;
+var Acc_Ns  : map<nat, set<int>> := map a | a in As :: {};
+var Acc_Soup_Hist  : map<nat, set<(nat,Msg_Acc)>>  := map a | a in As :: {};
+var Prop_Soup_Hist : map<nat, set<(nat,Msg_Prop)>> := map p | p in Ps :: {};
+var OneA_Hist : set<nat>                     := {};
+var OneB_Hist : map<nat, set<(int,int,int)>> := map a | a in As :: {};
+var TwoA_Hist : set<(int,int)>               := {};
+var TwoB_Hist : map<nat, set<(int,int)>>     := map a | a in As :: {};
+var Joined_Rnd : map<nat, set<int>> := map a | a in As :: {};
+var k : map<nat, nat> := map p | p in Ps :: 0;
+var k_pending : map<nat, nat> := map p | p in Ps :: 0;
+var l : map<nat, nat> := map p | p in Ps :: len(As);
+var m : map<nat, nat> := map p | p in Ps :: 0;
+    ( domain(Acc_Ns)             == As
+    && domain(Acc_Max_Seen_N)     == As
+    && domain(Acc_Max_Accepted_N) == As
+    && domain(Acc_Soup)           == As
+    && domain(Acc_MaxV)           == As
+    && domain(Prop_Decided) == Ps
+    && domain(Prop_HO)      == Ps
+    && domain(Prop_HO2)     == Ps
+    && domain(Prop_Max)     == Ps
+    && domain(Prop_N)       == Ps
+    && domain(Prop_PC)      == Ps
+    && domain(Prop_Ready)   == Ps
+    && domain(Prop_Exec_P5) == Ps
+    && domain(Prop_Exec_P6) == Ps
+    && domain(Prop_Soup)    == Ps
+    && domain(Prop_V)       == Ps
+    && domain(Prop_WL)      == Ps
+    && domain(Prop_WL2)     == Ps
+    && domain(k)         == Ps
+    && domain(k_pending) == Ps
+    && domain(l)         == Ps
+    && domain(m)         == Ps
+    && domain(OneB_Hist)  == As
+    && domain(TwoB_Hist)  == As
+    && domain(Joined_Rnd) == As
+    && domain(Prop_Soup_Hist) == Ps
+    && domain(Acc_Soup_Hist)  == As
+            var onea_wl := Ps;
+            while onea_wl != {}
+            invariant onea_wl <= Ps;
+            invariant domain(l) == Ps && domain(m) == Ps;
+            invariant forall p :: p in Ps ==> k[p] >= 0 && l[p] >= 0 && m[p] >= 0;
+            invariant forall p :: p in Ps ==> |As| == k[p] + l[p] + m[p];
+            decreases |onea_wl|
+              var p' := *; assume p' in onea_wl;
+              if Prop_N[p'] !in Acc_Ns[a] &&
+                Prop_N[p'] >= Acc_Max_Seen_N[a] &&
+                Prop_N[p'] < no &&
+                l[p'] > 0 {
+                  m := m[p' := m[p'] + 1];
+                  l := l[p' := l[p'] - 1];
+              }
+              onea_wl := onea_wl - {p'};
+            Joined_Rnd := Joined_Rnd[a := Joined_Rnd[a] + {no}];
+            Acc_Ns := Acc_Ns[a := Acc_Ns[a] + {no}];
+            assume l[pid] > 0;
+            k := k[pid := k[pid] + 1];
+            l := l[pid := l[pid] - 1];
+        Prop_Soup_Hist := Prop_Soup_Hist[pid := Prop_Soup_Hist[pid] + {resp}];
+        match msg {
+          case Prepare(no) =>
+            if old_max_seen_n < no {
+              OneB_Hist := OneB_Hist[a := OneB_Hist[a] + {(no, max_accepted_n, maxv)}];
+            }
+          case Accept(no,val) =>
+            if old_max_seen_n <= no {
+              TwoB_Hist := TwoB_Hist[a := TwoB_Hist[a] + {(no,val)}];
+              k_pending := k_pending[pid := k_pending[pid] + 1];
+            }
+        }
+      Acc_Soup_Hist := Acc_Soup_Hist[a := Acc_Soup_Hist[a] + {(p, Prepare(n))}];
+      OneA_Hist := OneA_Hist + {n};
+      Acc_Soup_Hist := Acc_Soup_Hist[a := Acc_Soup_Hist[a] + {(p, Accept(n,v))}];
+      TwoA_Hist := TwoA_Hist + {(n,v)};
+      Prop_Exec_P5 := Prop_Exec_P5[p := true];
+            assume k_pending[p] > 0;
+            k_pending := k_pending[p := k_pending[p] - 1];
+          Prop_Exec_P6 := Prop_Exec_P6[p := true];
+
+//  invariants
+free invariant forall a:nat,pid:nat,msg:Msg_Acc :: a in As && (pid,msg) in Acc_Soup[a] ==> pid in Ps;
+free invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup[p] ==> pid in As;
+free invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup_Hist[p] ==> pid in As;
+free invariant forall p :: p in Ps ==> Prop_WL[p] <= As && Prop_WL2[p] <= As;
+free invariant forall p :: p in Ps && Prop_Ready[p] ==> Prop_HO[p] > |As|/2;
+free invariant forall n,v1,v2 :: (n,v1) in TwoA_Hist && (n,v2) in TwoA_Hist ==> v1 == v2; // (5)
+free invariant forall a,p,n,v :: a in As && (p,Accept(n,v)) in Acc_Soup[a] ==> Prop_PC[p] !in {P0, P1, P2} && n == Prop_N[p] && v == Prop_V[p];
+free invariant forall n,v :: (n,v) in TwoA_Hist ==> exists p :: p in Ps && n == Prop_N[p] && v == Prop_V[p] && Prop_PC[p] !in {P0, P1, P2};
+free invariant forall p :: p in Ps ==> (Prop_Ready[p] ==> Prop_PC[p] !in {P0, P1, P2});
+free invariant forall p :: p in Ps && Prop_PC[p] in {P4, P5, P6, P7} ==> Prop_Ready[p];
+free invariant forall p :: p in Ps && Prop_Decided[p] ==> Prop_Ready[p];
+free invariant forall a,n,v :: a in As && (n,v) in TwoB_Hist[a] ==> (n,v) in TwoA_Hist; // (6)
+free invariant forall a,msg :: a in As && msg in Acc_Soup[a] ==> msg in Acc_Soup_Hist[a];
+free invariant forall a,n,v :: a in As && (n,v) in TwoB_Hist[a] ==> (exists p :: p in Ps && (p, Accept(n,v)) in Acc_Soup_Hist[a]);
+free invariant forall a,n,v,p :: a in As && (p, Accept(n,v)) in Acc_Soup_Hist[a] ==> (n,v) in TwoA_Hist;
+free invariant forall p :: p in Ps ==> k[p] >= 0 && l[p] >= 0 && m[p] >= 0;
+free invariant forall p :: p in Ps ==> |As| == k[p] + l[p] + m[p];
+free invariant forall p :: p in Ps && k[p] > |As|/2 ==> m[p] <= |As|/2;
+free invariant forall p :: p in Ps && Prop_Decided[p] ==> k[p] > |As|/2; // (7)
+free invariant forall p :: p in Ps ==> Prop_HO2[p] + k_pending[p] <= k[p];
+free invariant forall p :: p in Ps ==> k_pending[p] >= 0;
+free invariant forall a,vote :: a in As && vote in TwoB_Hist[a]==> vote.0 >= 0; // (11)
+free invariant forall a,no,maxn,maxv :: a in As && (no, maxn, maxv) in OneB_Hist[a] ==> no in Joined_Rnd[a]; // (15)
+free invariant forall a,n :: a in As && n in Joined_Rnd[a] ==> n <= Acc_Max_Seen_N[a]; // (14)
+free invariant forall a,msg,n :: a in As && msg in Acc_Soup[a] && msg.1 == Prepare(n) ==> n >= 0;
+free invariant forall n :: n in OneA_Hist ==> n >= 0;
+free invariant forall p,n,v :: (n,v) in TwoA_Hist && p in Ps && Prop_N[p] == n ==> Prop_Ready[p];
+#+END_SRC
+
+** Synchronized (IceT)
+
+#+BEGIN_SRC prolog
+%%  annotations
+decl(p0, int),
+decl(a0, int),
+decl(k, map(set(p), int)),
+decl(l, map(set(p), int)),
+decl(m, map(set(p), int))
+implies(and([elem(aa,a), elem(p1,p), elem(p2,p),
+             ref(decided,p1)=1, ref(decided,p2)=1,
+             implies(and([ref(k,p1) > card(a)/2, ref(k,p2) > card(a)/2]),
+                     and([ref(t,p1) =< ref(a_w_t,aa), ref(t,p2) =< ref(a_w_t,aa)])),
+             0 =< ref(l,p1), 0 =< ref(l,p2)]),
+ref(x,p1) = ref(x,p2))),
+assign(P, k, ref(k,P)+1),
+assign(P, l, ref(l,P)-1),
+assume(P, and([ref(k,P)>0, 0 =< ref(l,P)]))
+Proposers=sym(P, p, seq([pre(P, ref(ready,P)=0),
+                         pre(P, ref(decided,P)=0),
+                         pre(P, ref(ho,P)=0),
+                         pre(P, ref(t,P)>0),
+                         pre(P, and([ref(k,P) = 0, ref(l,P) = card(a), ref(m,P) = 0])),
+                         assume(P, forall([decl(i,int)],
+                                          and([ref(m,i)=0, ref(l,i) = card(a), ref(k,i) = 0, ref(t,i) > 0]))),
+                          if(A, ref(t,p0) =< ref(max,A),
+                             seq([ assume(A, ref(l, p0) > 0),
+                                   assign(p0, l, upd(l, p0, ref(l,p0) - 1)),
+                                   assign(p0, m, upd(m, p0, ref(m,p0) + 1))]))
+Acceptors=sym(A, a, seq([pre(A, ref(a_w_t,A) = 0),
+
+%%  invariants
+Assumptions=seq([ assume(P, forall([decl(i,int)], implies(ref(t,i)=ref(t,P), i=P))), %% Paxos assumption
+                  assume(P, forall([decl(i,int)], implies(and([elem(i,p), ref(l,i) > card(a)/2]),
+                                                          or([ref(ready,P)=0, ref(t,P) < ref(t,i)])))),
+                  assume(P,elem(a0,a)),
+                  assume(P,implies(and([0 =< ref(x_t,P)]),
+                                   and([ref(x,P) = ref(a_w,a0), ref(x_t,P) = ref(a_w_t,a0)]))),
+                  assume(P, forall([decl(i,int)],
+                                   implies(and([elem(i,p),ref(ready,i)=1,ref(k,i)+ref(l,i)>card(a)/2,ref(ready,P)=1]),
+                                           and([ref(t,i) =< ref(x_t,P), 0 =< ref(x_t,P)]))))
+seq([ pre(P, forall([decl(i,int)], implies(and([elem(i,p),here(i)]),
+                                           and([ref(ready,i)=0, ref(decided,i)=0, ref(k,i) = 0,
+                                                ref(k,i) + ref(l,i) + ref(m,i) = card(a)])))),
+seq([pre(P, forall([decl(i,int)], implies(and([elem(i,p),ref(decided,i)=1]),
+                                          and([ref(k,i)>card(a)/2,ref(ho,i)>card(a)/2,ref(ready,i)=1])))),
+pre(P, forall([decl(i,int)], implies(and([elem(i,p),here(i)]),
+                                     and([ref(decided,i)=0, ref(k,i)=0,
+                                          ref(k,i) + ref(l,i) + ref(m,i) = card(a)])))),
+seq([pre(P, forall([decl(i,int)], implies(and([elem(i,p),here(i)]),
+                                          and([ref(ready,i)=1,ref(decided,i)=0,ref(ho,i)=<ref(k,i),
+                                               ref(k,i) + ref(l,i) + ref(m,i) = card(a)])))),
+pre(P,forall([decl(i,int),decl(j,int)],
+             implies(and([elem(i,p),elem(j,a),ref(l,i) > card(a)/2,ref(k,i)=0]),
+                     ref(a_w_t,j) < ref(t,i)))),
+pre(P,forall([decl(qa,int),decl(qp,int)],
+             implies( and([elem(qa,a),elem(qp,p),ref(ready,qp)=1,ref(t,qp)=<ref(a_w_t,qa),
+                           ref(k,qp)+ref(l,qp) > card(a)/2]),
+                      ref(a_w,qa)=ref(x,qp)))),
+seq([pre(P, forall([decl(i,int)],
+                   implies(and([elem(i,p),here(i)]),
+                           and([ref(ready,i)=1,ref(ho,i)=<ref(k,i),
+                                ref(k,i) + ref(l,i) + ref(m,i) = card(a)])))),
+#+END_SRC

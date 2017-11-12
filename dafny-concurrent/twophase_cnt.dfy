@@ -71,9 +71,9 @@ module TwoPhaseCommit
     invariant domain(Ps_p2_is_run) == Ps;                                                                                // annot
     invariant domain(Ps_p3_is_run) == Ps;                                                                                // annot
 
-    invariant main_WL <= Ps + {c};                                                                                       // annot
-    invariant WL <= Ps;                                                                                                  // annot
-    invariant WL2 <= Ps;                                                                                                 // annot
+    invariant main_WL <= Ps + {c};                                                                                       // harness
+    invariant WL <= Ps;                                                                                                  // harness
+    invariant WL2 <= Ps;                                                                                                 // harness
 
     invariant forall p :: p in Ps && p !in main_WL ==> Ps_pc[p] == P5;                                                   // inv
 
@@ -104,7 +104,7 @@ module TwoPhaseCommit
     invariant forall p :: p in Ps && Ps_p3_is_run[p] && Decision[p] == Commit ==> Value[p] == Val[p];                    // inv
     // ##########################################################################
 
-    decreases *                                                                                                          // annot
+    decreases *                                                                                                          // harness
     {
       var p := *; assume p in main_WL;                                                                                   // harness
 
@@ -262,7 +262,7 @@ module TwoPhaseCommit
       }                                                                                                                  // code
     }                                                                                                                  
 
-    assert committed ==> (forall p :: p in Ps ==> Value[p] == proposal);                                                 // inv
+    assert committed ==> (forall p :: p in Ps ==> Value[p] == proposal);                                                 // annot
 
   }                                                                                                                   
 }                                                                                                                    

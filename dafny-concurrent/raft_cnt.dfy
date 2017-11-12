@@ -121,9 +121,6 @@ module RaftLeaderElection {
     var main_WL := Cs + Fs;                                                                                              // harness
 
     while main_WL != {}                                                                                                  // harness
-    // #########################################################################                                         
-    // invariants                                                                                                       
-    // #########################################################################                                       
     invariant
       ( domain(f_WL)              == Fs                                                                                  // annot
       && domain(f_ReqVote_buf)     == Fs                                                                                 // annot
@@ -146,7 +143,7 @@ module RaftLeaderElection {
       && domain(o_t)               == Cs                                                                                 // annot
       && domain(o_f)               == Cs                                                                                 // annot
       );                                                                                                                 
-    invariant main_WL <= Fs + Cs;                                                                                        // annot
+    invariant main_WL <= Fs + Cs;                                                                                        // harness
     invariant forall c,f :: c in Cs && f in c_WL[c] ==> f in Fs;                                                         // inv
     invariant forall f,c :: f in Fs && c in f_WL[f] ==> c in Cs;                                                         // inv
     invariant forall c,f :: c in Cs && f == c_f[c] ==> f in Fs;                                                          // inv
