@@ -20,7 +20,7 @@ prog( twophase                                                                  
 
     Agreement=and([forall([decl(i,int)], implies(and([elem(i,p), committed=1]), ref(value,i)=prop))                      %% annot
                    ,forall([decl(i,int)], implies(and([elem(i,p), committed=0]), ref(value,i)=0))                        %% annot
-                  ]),                                                                                                    %% annot
+                  ]),                                                                                                    %%
 
     /* forall i in rest, i.val = prop */                                                                                 
     Inv0=forall([decl(i,int)], implies(and([elem(i,r)]), and([ref(value,i)=0, ref(val,i)=prop]))),                       %% inv
