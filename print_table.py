@@ -46,14 +46,16 @@ class GlobalStats(object):
         self.dafny_t     = dafny_t
         
     def column_values(self):
-        return [('\\#L',        "%4s",  self.icet_stats.code), 
-                ('\\#A (\\#I)', "%10s", "%d (%d)" % (self.icet_stats.annot + self.icet_stats.inv, self.icet_stats.inv)),
-                ('RW (s)',      "%6s",  self.icet_rw), 
-                ('VC (s)',      "%6s",  self.icet_vc),
-                ('\\#L',        "%4s",  self.dafny_stats.code), 
-                ('\\#A (\\#I)', "%10s", "%d (%d)" % (self.dafny_stats.annot + self.dafny_stats.inv, self.dafny_stats.inv)),
-                ('\\#H',        "%4s",  self.dafny_stats.harness), 
-                ('Ver (s)',     "%9s",  self.dafny_t)]
+        return [('\\#Lines'  ,  "%4s",  self.icet_stats.code), 
+                ('\\#Anns'   ,  "%10s", "%d" % (self.icet_stats.annot)),
+                ('\\#Invs'   ,  "%10s", "%d" % (self.icet_stats.inv)),
+                ('RW (s)'    ,  "%6s",  self.icet_rw), 
+                ('Check (s)' ,  "%6s",  self.icet_vc),
+                ('\\#Lines'  ,  "%4s",  self.dafny_stats.code), 
+                ('\\#Anns'   ,  "%10s", "%d" % (self.dafny_stats.annot)),
+                ('\\#Invs'   ,  "%10s", "%d" % (self.dafny_stats.inv)),
+                ('\\#Harness',  "%4s",  self.dafny_stats.harness), 
+                ('Check (s)' ,  "%9s",  self.dafny_t)]
 
     def header(self):
         return " & ".join(map(lambda (k,fmt,v): "\\textbf{%s}" % k, self.column_values()))
