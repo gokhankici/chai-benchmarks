@@ -1,9 +1,29 @@
+* Summary
+
+There are more invariants in Dafny due to the following reasons:  
+
+1. Related to the program counters, i.e. if =PC=n= then you've already executed
+   =n-1=, =n-2=, ...
+2. Invariants related to the values of the messages in the buffers
+3. Counting the messages in flight that have a particular value.
+
+However, the it seems like the annotation overhead is lower then what it seems
+in =IceT= due to
+
+1. Duplication in the way invariants are written in Paxos. For
+   example, the invariant =forall p :: k[p]+l[p]+m[p] = |A|= is duplicated 3
+   times in =IceT= code of Paxos
+2. Writing invariants in Prolog is more verbose than Dafny. A single invariant
+   of generally takes multiple lines when it's refactored to look "nice",
+   however it would take a single line in Dafny.
+
+
 * Two-Phase Commit
 
 ** Plain (Dafny)
 
+***  Annotations
 #+BEGIN_SRC dafny
-//  annotations
 var c_p2_is_run := false;
 var Ps_p0_is_run := map p | p in Ps :: false; assume domain(Ps_p0_is_run) == Ps;
 var Ps_p2_is_run := map p | p in Ps :: false; assume domain(Ps_p2_is_run) == Ps;
@@ -24,8 +44,10 @@ Ps_p0_is_run := Ps_p0_is_run[p := true];
 Ps_p2_is_run := Ps_p2_is_run[p := true];
 Ps_p3_is_run := Ps_p3_is_run[p := true];
 assert committed ==> (forall p :: p in Ps ==> Value[p] == proposal);
+#+END_SRC
 
-//  invariants
+***  Invariants
+#+BEGIN_SRC dafny
 invariant forall p :: p in Ps && p !in main_WL ==> Ps_pc[p] == P5;
 invariant c_p2_is_run <==> c_pc in {P3, P4, P5, P6};
 invariant forall p :: p in Ps ==> ( Ps_p0_is_run[p] <==> Ps_pc[p] in {P1, P2, P3, P4, P5} );
@@ -42,24 +64,35 @@ invariant forall p :: p in Ps && Ps_p3_is_run[p] && Decision[p] == Commit ==> Va
 
 ** Synchronized (IceT)
 
+***  Annotations
 #+BEGIN_SRC prolog
-%%  annotations
 Agreement=and([forall([decl(i,int)], implies(and([elem(i,p), committed=1]), ref(value,i)=prop))
                ,forall([decl(i,int)], implies(and([elem(i,p), committed=0]), ref(value,i)=0))
               ]),
+#+END_SRC
 
-%%  invariants
+***  Invariants
+#+BEGIN_SRC prolog
 Inv0=forall([decl(i,int)], implies(and([elem(i,r)]), and([ref(value,i)=0, ref(val,i)=prop]))),
 Inv1=forall([decl(i,int)], and([ implies(and([elem(i,rr), committed=1]), ref(value,i)=ref(val,i)),
                                  implies(and([elem(i,p), committed=0]), ref(value,i)=0) ])),
 #+END_SRC
+   
+** Difference
+
+The asynchronous invariants in Dafny contain the following in addition to the
+sequential ones:
+
+- Related to the program counters, i.e. if =PC=n= then you've already executed
+  =n-1=, =n-2=, ...
+- Invariants related to the values of the messages in the buffers
 
 * Raft
-
+  
 ** Plain (Dafny)
    
+***  Annotations
 #+BEGIN_SRC dafny
-//  annotations
 requires |Cs| > 0;
 requires |Fs| >= 2;
 requires Fs !! Cs;
@@ -111,8 +144,10 @@ assume(forall c1,c2 ::
   (exists f :: f in Fs && f_term[f] == c_term[c1] && f_term[f] >  c_term[c2] && f_vote[f] == c1 && f_votes[f][c_term[c2]] == c2) ||
   (exists f :: f in Fs && f_term[f] > c_term[c1] && f_term[f] > c_term[c2] && f_votes[f][c_term[c1]] == c1 && f_votes[f][c_term[c2]] == c2));
 assert (forall c1, c2 :: (c1 in Cs && c2 in Cs && c_term[c1] == c_term[c2] && c_leader[c1] && c_leader[c2] ==> c1 == c2));
+#+END_SRC
 
-//  invariants
+***  Invariants
+#+BEGIN_SRC dafny
 invariant forall c,f :: c in Cs && f in c_WL[c] ==> f in Fs;
 invariant forall f,c :: f in Fs && c in f_WL[f] ==> c in Cs;
 invariant forall c,f :: c in Cs && f == c_f[c] ==> f in Fs;
@@ -136,8 +171,8 @@ invariant forall f,c,t :: f in Fs && f_voted[f] && f_vote[f] == c && c_term[c] =
 
 ** Synchronized (IceT)
 
+***  Annotations
 #+BEGIN_SRC prolog
-%%  annotations
 decl(votes,      map(set(f), map(int, int))),
 decl(k,          map(set(c), int)),
 decl(l,          map(set(c), int)),
@@ -161,8 +196,10 @@ P2= seq([pre(C, and([ref(k,C) = card(f), ref(l,C) = 0, ref(count,C) = 0, ref(isL
                                                      ref(ref(votes,f0),ref(cterm,j))=j,
                                                      ref(cterm,i) =< ref(fterm, f0),
                                                      ref(cterm,i) =< ref(fterm, f0)])))),
-
-%%  invariants
+#+END_SRC
+     
+***  Invariants
+#+BEGIN_SRC prolog
 seq([ pre(C, forall([decl(i,int)], implies(elem(i,c), and([ ref(k,i)+ref(l,i) =< card(f),
                                                             ref(count,i)=ref(l,i)])))),
 group(pre(C, forall([decl(i,int)], implies(and([elem(i,c), ref(isLeader,i)=1]), card(f)<ref(count,i)*2))),
@@ -176,13 +213,25 @@ group(pre(C, forall([decl(i,int)], implies(and([elem(i,c), ref(isLeader,i)=1]), 
                                        ref(isLeader,j)=1, ref(isLeader,i)=1]),
                                   i=j))),
 #+END_SRC
+     
+** Differences
+
+The asynchronous invariants in Dafny contain the following in addition to the
+sequential ones:
+
+- Invariants related to the values of the messages in the buffers
+- Counting the messages in flight that have a particular value.
+
+However, there's no need to write invariants that relate program locations since
+it doesn't involve multiple phases as 2pc.
 
 * Paxos
 
 ** Plain (Dafny)
    
+***  Annotations
+
 #+BEGIN_SRC dafny
-//  annotations
 requires |Ps| > 0
 requires |As| >= 2
 requires Ps !! As
@@ -269,8 +318,11 @@ var m : map<nat, nat> := map p | p in Ps :: 0;
             assume k_pending[p] > 0;
             k_pending := k_pending[p := k_pending[p] - 1];
           Prop_Exec_P6 := Prop_Exec_P6[p := true];
+#+END_SRC
 
-//  invariants
+***  Invariants
+
+#+BEGIN_SRC dafny
 free invariant forall a:nat,pid:nat,msg:Msg_Acc :: a in As && (pid,msg) in Acc_Soup[a] ==> pid in Ps;
 free invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup[p] ==> pid in As;
 free invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup_Hist[p] ==> pid in As;
@@ -302,8 +354,9 @@ free invariant forall p,n,v :: (n,v) in TwoA_Hist && p in Ps && Prop_N[p] == n =
 
 ** Synchronized (IceT)
 
+***  Annotations
+
 #+BEGIN_SRC prolog
-%%  annotations
 decl(p0, int),
 decl(a0, int),
 decl(k, map(set(p), int)),
@@ -330,8 +383,11 @@ Proposers=sym(P, p, seq([pre(P, ref(ready,P)=0),
                                    assign(p0, l, upd(l, p0, ref(l,p0) - 1)),
                                    assign(p0, m, upd(m, p0, ref(m,p0) + 1))]))
 Acceptors=sym(A, a, seq([pre(A, ref(a_w_t,A) = 0),
+#+END_SRC
 
-%%  invariants
+***  Invariants
+
+#+BEGIN_SRC prolog
 Assumptions=seq([ assume(P, forall([decl(i,int)], implies(ref(t,i)=ref(t,P), i=P))), %% Paxos assumption
                   assume(P, forall([decl(i,int)], implies(and([elem(i,p), ref(l,i) > card(a)/2]),
                                                           or([ref(ready,P)=0, ref(t,P) < ref(t,i)])))),
@@ -364,3 +420,16 @@ seq([pre(P, forall([decl(i,int)],
                            and([ref(ready,i)=1,ref(ho,i)=<ref(k,i),
                                 ref(k,i) + ref(l,i) + ref(m,i) = card(a)])))),
 #+END_SRC
+
+** Differences
+
+The differences are the 
+
+- Related to the program counters, i.e. if =PC=n= then you've already executed
+  =n-1=, =n-2=, ...
+- Invariants related to the values of the messages in the buffers
+- Counting the messages in flight that have a particular value.
+
+Also there's duplication in the way invariants are written in Paxos. For
+example, the invariant =forall p :: k[p]+l[p]+m[p] = |A|= is duplicated 3 times
+in =IceT= code.
