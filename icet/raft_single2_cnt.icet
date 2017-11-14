@@ -22,7 +22,7 @@ prog( raft_single,                                                              
             decl(f0,         int)                                                                                        %% annot
           ],                                                                                                             %% 
 
-    Safety=forall([decl(i,int), decl(j,int)], implies(and([elem(i,c), elem(j,c), ref(cterm,i)=ref(cterm,j), ref(isLeader,j)=1, ref(isLeader,i)=1]), i=j)), %% inv
+    Safety=forall([decl(i,int), decl(j,int)], implies(and([elem(i,c), elem(j,c), ref(cterm,i)=ref(cterm,j), ref(isLeader,j)=1, ref(isLeader,i)=1]), i=j)), %% annot
     Program=par([sym(F, f, P1), sym(C, c, P2)]),                                                                         %% code
     /* followers */                                                                                                      %% 
     P1= seq([for(F, _, c,                                                                                                %% code
@@ -46,11 +46,11 @@ prog( raft_single,                                                              
                 )                                                                                                        %% code
             ]),                                                                                                          %% 
     /* Candidates */                                                                                                     %% 
-    P2= seq([pre(C, and([ref(k,C) = card(f), ref(l,C) = 0, ref(count,C) = 0, ref(isLeader, C) = 0])),                    %% inv
+    P2= seq([pre(C, and([ref(k,C) = card(f), ref(l,C) = 0, ref(count,C) = 0, ref(isLeader, C) = 0])),                    %% annot
              assign(C, count, 0),                                                                                        %% code
              assign(C, isLeader, 0),                                                                                     %% code
-             assume(C, forall([decl(i,int)], ref(k,i) = card(f))),                                                       %% inv
-             assume(C, forall([decl(i,int)], ref(l,i) = 0)),                                                             %% inv
+             assume(C, forall([decl(i,int)], ref(k,i) = card(f))),                                                       %% annot
+             assume(C, forall([decl(i,int)], ref(l,i) = 0)),                                                             %% annot
              for(C, F, f,                                                                                                %% code
                  seq([ pre(C, forall([decl(i,int)], implies(elem(i,c), and([ ref(k,i)+ref(l,i) =< card(f), ref(count,i)=ref(l,i)])))), %% inv
                        send(C, e_pid(F), pair(C, cterm)),                                                                %% code
@@ -69,8 +69,8 @@ prog( raft_single,                                                              
                    seq([ assume(C, forall([decl(i,int)], 0 =< ref(k,i))),                                                %% inv
                          assume(C, forall([decl(i,int)], 0 =< ref(l,i))),                                                %% inv
                          assume(C, elem(f0,f)),                                                                          %% inv
-                         assume(C, forall([decl(i,int),decl(j,int)], implies( and([elem(i,c), elem(j,c), ref(l,i)>card(f)/2, ref(l,j)>card(f)/2]), %% inv
-                                   and([ ref(ref(votes,f0),ref(cterm,i))=i, ref(ref(votes,f0),ref(cterm,j))=j, ref(cterm,i) =< ref(fterm, f0), ref(cterm,i) =< ref(fterm, f0)])))), %% inv
+                         assume(C, forall([decl(i,int),decl(j,int)], implies( and([elem(i,c), elem(j,c), ref(l,i)>card(f)/2, ref(l,j)>card(f)/2]), %% annot
+                                   and([ ref(ref(votes,f0),ref(cterm,i))=i, ref(ref(votes,f0),ref(cterm,j))=j, ref(cterm,i) =< ref(fterm, f0), ref(cterm,i) =< ref(fterm, f0)])))), %% annot
                          pre(C, forall([decl(i,int), decl(j,int)], implies(and([elem(i,c), elem(j,c), ref(count,i) > card(f)/2, ref(count,j) > card(f)/2, ref(cterm,i)=ref(cterm,j), ref(isLeader,j)=1, ref(isLeader,i)=1]), i=j))), %% inv
                          if(C, card(f)<2*ref(count,C),                                                                   %% code
                             assign(C, isLeader, 1))                                                                      %% code

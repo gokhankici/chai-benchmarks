@@ -18,8 +18,8 @@ prog( twophase                                                                  
           , decl(decision, map(set(p), int))                                                                             %% code
       ], ensures(Agreement), T) :-                                                                                       %% code
 
-    Agreement=and([forall([decl(i,int)], implies(and([elem(i,p), committed=1]), ref(value,i)=prop))                      %% inv
-                   ,forall([decl(i,int)], implies(and([elem(i,p), committed=0]), ref(value,i)=0))                        %% inv
+    Agreement=and([forall([decl(i,int)], implies(and([elem(i,p), committed=1]), ref(value,i)=prop))                      %% annot
+                   ,forall([decl(i,int)], implies(and([elem(i,p), committed=0]), ref(value,i)=0))                        %% annot
                   ]),                                                                                                    %%
 
     /* forall i in rest, i.val = prop */                                                                                 

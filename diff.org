@@ -17,6 +17,7 @@ in =IceT= due to
    of generally takes multiple lines when it's refactored to look "nice",
    however it would take a single line in Dafny.
 
+
 * Two-Phase Commit
 
 ** Plain (Dafny)
@@ -225,7 +226,7 @@ However, there's no need to write invariants that relate program locations since
 it doesn't involve multiple phases as 2pc.
 
 * Paxos
-  
+
 ** Plain (Dafny)
    
 ***  Annotations

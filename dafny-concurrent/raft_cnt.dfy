@@ -86,10 +86,10 @@ module RaftLeaderElection {
     // history
     // #########################################################################
     // f_votes[f] = Term -> Candidate voted for
-    var f_votes : map<nat, map<nat, nat>> := map f | f in Fs :: map[];                                                 // annot
+    var f_votes : map<nat, map<nat, nat>> := *;                                                                          // annot
     assume domain(f_votes) == Fs;                                                                                        // harness
-    // assume forall f,t :: f in Fs ==> (t in f_votes[f] <==> t in (set c | c in Cs :: c_term[c]));                         // inv
-    // assume forall f,c :: f in Fs && c in Cs && f_voted[f] ==> f_votes[f][c_term[c]] == c;                                // inv
+    assume forall f,t :: f in Fs ==> (t in f_votes[f] <==> t in (set c | c in Cs :: c_term[c]));                         // inv
+    assume forall f,c :: f in Fs && c in Cs && f_voted[f] ==> f_votes[f][c_term[c]] == c;                                // inv
     // #########################################################################
 
     // #########################################################################
@@ -176,7 +176,7 @@ module RaftLeaderElection {
 
     invariant forall f,t,c :: f in Fs && 0 < |f_ReqVote_buf[f]| && (t,c) in f_ReqVote_buf[f] ==> c in Cs && c_term[c] == t; // inv
 
-    invariant forall f,t :: f in Fs && |f_votes[f]| > 0 ==> (t in f_votes[f] <==> t in (set c | c in Cs :: c_term[c]));                       // inv
+    invariant forall f,t :: f in Fs ==> (t in f_votes[f] <==> t in (set c | c in Cs :: c_term[c]));                         // inv
     invariant forall f,c,t :: f in Fs && f_voted[f] && f_vote[f] == c && c_term[c] == t ==> f_votes[f][t] == c;             // inv
 
     // #########################################################################
