@@ -145,8 +145,8 @@ module PaxosSingle {
     var WL_main := Ps + As;                                                                                              // harness
 
     while WL_main != {}                                                                                                  // harness
-    free invariant WL_main <= Ps + As;                                                                                   // inv
-    free invariant
+    invariant WL_main <= Ps + As;                                                                                   // inv
+    invariant
         ( domain(Acc_Ns)             == As                                                                               // inv
         && domain(Acc_Max_Seen_N)     == As                                                                              // inv
         && domain(Acc_Max_Accepted_N) == As                                                                              // inv
@@ -180,66 +180,66 @@ module PaxosSingle {
         && domain(Prop_Soup_Hist) == Ps                                                                                  // inv
         && domain(Acc_Soup_Hist)  == As                                                                                  // inv
         );
-    free invariant forall a:nat,pid:nat,msg:Msg_Acc :: a in As && (pid,msg) in Acc_Soup[a] ==> pid in Ps;                // inv
-    free invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup[p] ==> pid in As;              // inv
-    free invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup_Hist[p] ==> pid in As;         // inv
-    free invariant forall p,a :: p in Ps && a == Prop_a[p] ==> a in As;                                                  // harness
-    free invariant forall p :: p in Ps ==> Prop_WL[p] <= As && Prop_WL2[p] <= As;                                        // inv
-    free invariant forall p :: p in Ps && Prop_Ready[p] ==> Prop_HO[p] > |As|/2;                                         // inv
+    invariant forall a:nat,pid:nat,msg:Msg_Acc :: a in As && (pid,msg) in Acc_Soup[a] ==> pid in Ps;                // inv
+    invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup[p] ==> pid in As;              // inv
+    invariant forall p:nat,pid:nat,msg:Msg_Prop :: p in Ps && (pid,msg) in Prop_Soup_Hist[p] ==> pid in As;         // inv
+    invariant forall p,a :: p in Ps && a == Prop_a[p] ==> a in As;                                                  // harness
+    invariant forall p :: p in Ps ==> Prop_WL[p] <= As && Prop_WL2[p] <= As;                                        // inv
+    invariant forall p :: p in Ps && Prop_Ready[p] ==> Prop_HO[p] > |As|/2;                                         // inv
 
     // ----------------------------------------------------------------------
 
-    free invariant forall n,v1,v2 :: (n,v1) in TwoA_Hist && (n,v2) in TwoA_Hist ==> v1 == v2; // (5)                     // inv
-    free invariant forall a,p,n,v :: a in As && (p,Accept(n,v)) in Acc_Soup[a] ==> Prop_PC[p] !in {P0, P1, P2} && n == Prop_N[p] && v == Prop_V[p]; // inv
-    free invariant forall n,v :: (n,v) in TwoA_Hist ==> exists p :: p in Ps && n == Prop_N[p] && v == Prop_V[p] && Prop_PC[p] !in {P0, P1, P2}; // inv
-    free invariant forall p :: p in Ps ==> (Prop_Ready[p] ==> Prop_PC[p] !in {P0, P1, P2});                              // inv
-    free invariant forall p :: p in Ps && Prop_PC[p] in {P4, P5, P6, P7} ==> Prop_Ready[p];                              // inv
-    free invariant forall p :: p in Ps && Prop_Decided[p] ==> Prop_Ready[p];                                             // inv
+    invariant forall n,v1,v2 :: (n,v1) in TwoA_Hist && (n,v2) in TwoA_Hist ==> v1 == v2; // (5)                     // inv
+    invariant forall a,p,n,v :: a in As && (p,Accept(n,v)) in Acc_Soup[a] ==> Prop_PC[p] !in {P0, P1, P2} && n == Prop_N[p] && v == Prop_V[p]; // inv
+    invariant forall n,v :: (n,v) in TwoA_Hist ==> exists p :: p in Ps && n == Prop_N[p] && v == Prop_V[p] && Prop_PC[p] !in {P0, P1, P2}; // inv
+    invariant forall p :: p in Ps ==> (Prop_Ready[p] ==> Prop_PC[p] !in {P0, P1, P2});                              // inv
+    invariant forall p :: p in Ps && Prop_PC[p] in {P4, P5, P6, P7} ==> Prop_Ready[p];                              // inv
+    invariant forall p :: p in Ps && Prop_Decided[p] ==> Prop_Ready[p];                                             // inv
 
     // ----------------------------------------------------------------------
 
-    free invariant forall a,n,v :: a in As && (n,v) in TwoB_Hist[a] ==> (n,v) in TwoA_Hist; // (6)                       // inv
-    free invariant forall a,msg :: a in As && msg in Acc_Soup[a] ==> msg in Acc_Soup_Hist[a];                            // inv
-    free invariant forall a,n,v :: a in As && (n,v) in TwoB_Hist[a] ==> (exists p :: p in Ps && (p, Accept(n,v)) in Acc_Soup_Hist[a]); // inv
-    free invariant forall a,n,v,p :: a in As && (p, Accept(n,v)) in Acc_Soup_Hist[a] ==> (n,v) in TwoA_Hist;             // inv
+    invariant forall a,n,v :: a in As && (n,v) in TwoB_Hist[a] ==> (n,v) in TwoA_Hist; // (6)                       // inv
+    invariant forall a,msg :: a in As && msg in Acc_Soup[a] ==> msg in Acc_Soup_Hist[a];                            // inv
+    invariant forall a,n,v :: a in As && (n,v) in TwoB_Hist[a] ==> (exists p :: p in Ps && (p, Accept(n,v)) in Acc_Soup_Hist[a]); // inv
+    invariant forall a,n,v,p :: a in As && (p, Accept(n,v)) in Acc_Soup_Hist[a] ==> (n,v) in TwoA_Hist;             // inv
 
     // ----------------------------------------------------------------------
 
-    free invariant forall p :: p in Ps ==> k[p] >= 0 && l[p] >= 0 && m[p] >= 0;                                          // inv
-    free invariant forall p :: p in Ps ==> |As| == k[p] + l[p] + m[p];                                                   // inv
-    free invariant forall p :: p in Ps && k[p] > |As|/2 ==> m[p] <= |As|/2;                                              // inv
+    invariant forall p :: p in Ps ==> k[p] >= 0 && l[p] >= 0 && m[p] >= 0;                                          // inv
+    invariant forall p :: p in Ps ==> |As| == k[p] + l[p] + m[p];                                                   // inv
+    invariant forall p :: p in Ps && k[p] > |As|/2 ==> m[p] <= |As|/2;                                              // inv
 
-    free invariant forall p :: p in Ps && Prop_Decided[p] ==> k[p] > |As|/2; // (7)                                      // inv
-    free invariant forall p :: p in Ps ==> Prop_HO2[p] + k_pending[p] <= k[p];                                           // inv
-    free invariant forall p :: p in Ps ==> k_pending[p] >= 0;                                                            // inv
-
-    // ----------------------------------------------------------------------
-
-    free invariant forall a,vote :: a in As && vote in TwoB_Hist[a]==> vote.0 >= 0; // (11)                              // inv
+    invariant forall p :: p in Ps && Prop_Decided[p] ==> k[p] > |As|/2; // (7)                                      // inv
+    invariant forall p :: p in Ps ==> Prop_HO2[p] + k_pending[p] <= k[p];                                           // inv
+    invariant forall p :: p in Ps ==> k_pending[p] >= 0;                                                            // inv
 
     // ----------------------------------------------------------------------
 
-    free invariant forall a,no,maxn,maxv :: a in As && (no, maxn, maxv) in OneB_Hist[a] ==> no in Joined_Rnd[a]; // (15) // inv
+    invariant forall a,vote :: a in As && vote in TwoB_Hist[a]==> vote.0 >= 0; // (11)                              // inv
 
     // ----------------------------------------------------------------------
 
-    free invariant forall a,n :: a in As && n in Joined_Rnd[a] ==> n <= Acc_Max_Seen_N[a]; // (14)                       // inv
+    invariant forall a,no,maxn,maxv :: a in As && (no, maxn, maxv) in OneB_Hist[a] ==> no in Joined_Rnd[a]; // (15) // inv
 
     // ----------------------------------------------------------------------
 
-    free invariant forall a,msg,n :: a in As && msg in Acc_Soup[a] && msg.1 == Prepare(n) ==> n >= 0;                    // inv
-    free invariant forall n :: n in OneA_Hist ==> n >= 0;                                                                // inv
+    invariant forall a,n :: a in As && n in Joined_Rnd[a] ==> n <= Acc_Max_Seen_N[a]; // (14)                       // inv
 
     // ----------------------------------------------------------------------
 
-	  free invariant forall p,n,v :: (n,v) in TwoA_Hist && p in Ps && Prop_N[p] == n ==> Prop_Ready[p];                     // inv
+    invariant forall a,msg,n :: a in As && msg in Acc_Soup[a] && msg.1 == Prepare(n) ==> n >= 0;                    // inv
+    invariant forall n :: n in OneA_Hist ==> n >= 0;                                                                // inv
+
+    // ----------------------------------------------------------------------
+
+	  invariant forall p,n,v :: (n,v) in TwoA_Hist && p in Ps && Prop_N[p] == n ==> Prop_Ready[p];                     // inv
 
     // ----------------------------------------------------------------------
 
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     // !!! Required to prove the safety property !!!
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	  // free invariant forall p,p' :: p in Ps && p' in Ps && Prop_Ready[p'] && Prop_N[p] < Prop_N[p'] && Prop_V[p] != Prop_V[p'] ==> m[p] > |As|/2;    // inv
+	  // invariant forall p,p' :: p in Ps && p' in Ps && Prop_Ready[p'] && Prop_N[p] < Prop_N[p'] && Prop_V[p] != Prop_V[p'] ==> m[p] > |As|/2;    // inv
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     // ----------------------------------------------------------------------

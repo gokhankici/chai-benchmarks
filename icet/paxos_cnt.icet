@@ -25,10 +25,10 @@ prog('paxos', Decls, ensures(FinalAssert), T, sym(A,a,while(A, true, AccLoop))) 
                       assume(P, forall([decl(i,int)], implies(and([elem(i,p),ref(ready,i)=1,ref(k,i)+ref(l,i)>card(a)/2,ref(ready,P)=1]), and([ref(t,i) =< ref(x_t,P), 0 =< ref(x_t,P)])))) %% inv
                     ]),                                                                                                            %% 
     FinalAssert=forall([decl(aa,int),decl(p1,int),decl(p2,int)],                                                                   %% code
-                       implies(and([elem(aa,a), elem(p1,p), elem(p2,p), ref(decided,p1)=1, ref(decided,p2)=1,                      %% annot
+                       implies(and([elem(aa,a), elem(p1,p), elem(p2,p), ref(decided,p1)=1, ref(decided,p2)=1,                      %% inv
                                     /** Cardinalities **/                                                                          %% 
-                                    implies(and([ref(k,p1) > card(a)/2, ref(k,p2) > card(a)/2]), and([ref(t,p1) =< ref(a_w_t,aa), ref(t,p2) =< ref(a_w_t,aa)])), %% annot
-                                    0 =< ref(l,p1), 0 =< ref(l,p2)]), ref(x,p1) = ref(x,p2))),                                     %% annot
+                                    implies(and([ref(k,p1) > card(a)/2, ref(k,p2) > card(a)/2]), and([ref(t,p1) =< ref(a_w_t,aa), ref(t,p2) =< ref(a_w_t,aa)])), %% inv
+                                    0 =< ref(l,p1), 0 =< ref(l,p2)]), ref(x,p1) = ref(x,p2))),                                     %% inv
     %% assert (forall a,p1, p2 :: (a in As && p1 in Ps && p2 in Ps && Decided[p1] && Decided[p2] &&                                %% 
     %%   ((k[p1] > |As|/2 && k[p2] > |As|/2) ==> (V_T[a] >= T[p1] && V_T[a] >= T[p2])) &&                                          %% 
     %%   l[p1] >= 0 && l[p2] >= 0)                                                                                                 %% 

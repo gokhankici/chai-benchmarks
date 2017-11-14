@@ -5,6 +5,8 @@ import os.path as op
 
 NAME_FMT = "%-20s"
 
+DAFNY_BLACKLIST = ['kv_cnt.dfy']
+
 class FileStats(object):
     ANNOTS = ['code', 'annot', 'inv', 'harness']
 
@@ -37,25 +39,30 @@ class FileStats(object):
 
 class GlobalStats(object):
     FIELDS = ['icet_stats', 'icet_rw', 'icet_vc', 'dafny_stats', 'dafny_t']
+    
 
     def __init__(self, icet_rw=0, icet_vc=0, dafny_t=0):
-        self.icet_stats  = FileStats(comment='%%')
-        self.icet_rw     = icet_rw
-        self.icet_vc     = icet_vc
-        self.dafny_stats = FileStats(comment='//')
-        self.dafny_t     = dafny_t
+        self.icet_stats    = FileStats(comment='%%')
+        self.icet_rw       = icet_rw
+        self.icet_vc       = icet_vc
+        self.dafny_stats   = FileStats(comment='//')
+        self.dafny_t       = dafny_t
+        self.dafny_missing = False
         
     def column_values(self):
-        return [('\\#Lines'  ,  "%4s",  self.icet_stats.code), 
-                ('\\#Anns'   ,  "%10s", "%d" % (self.icet_stats.annot)),
-                ('\\#Invs'   ,  "%10s", "%d" % (self.icet_stats.inv)),
-                ('RW (s)'    ,  "%6s",  self.icet_rw), 
-                ('Check (s)' ,  "%6s",  self.icet_vc),
-                ('\\#Lines'  ,  "%4s",  self.dafny_stats.code), 
-                ('\\#Anns'   ,  "%10s", "%d" % (self.dafny_stats.annot)),
-                ('\\#Invs'   ,  "%10s", "%d" % (self.dafny_stats.inv)),
-                ('\\#Harness',  "%4s",  self.dafny_stats.harness), 
-                ('Check (s)' ,  "%9s",  self.dafny_t)]
+        def dash(s):
+            return "-" if self.dafny_missing else s
+
+        return [('\\#Lines'  ,  "%4s", self.icet_stats.code), 
+                ('\\#Anns'   ,  "%3s", "%d" % (self.icet_stats.annot)),
+                ('\\#Invs'   ,  "%3s", "%d" % (self.icet_stats.inv)),
+                ('RW (s)'    ,  "%5s", self.icet_rw), 
+                ('Check (s)' ,  "%5s", self.icet_vc),
+                ('\\#Lines'  ,  "%4s", dash(self.dafny_stats.code)), 
+                ('\\#Anns'   ,  "%3s", dash("%d" % (self.dafny_stats.annot))),
+                ('\\#Invs'   ,  "%3s", dash("%d" % (self.dafny_stats.inv))),
+                ('\\#Harness',  "%4s", dash(self.dafny_stats.harness)), 
+                ('Check (s)' ,  "%7s", dash(self.dafny_t))]
 
     def header(self):
         return " & ".join(map(lambda (k,fmt,v): "\\textbf{%s}" % k, self.column_values()))
@@ -86,7 +93,7 @@ class GlobalStats(object):
 def update_stats(filename, stat):
     if not op.isfile(filename):
         return
-
+    
     with open(filename, 'r') as f:
         for line in f:
             l = line.rstrip()
@@ -114,10 +121,11 @@ if __name__ == '__main__':
 
             (('paxos_cnt.icet', 'paxos_cnt.dfy'),
             'Single-Decree Paxos',
-            GlobalStats(icet_rw=1.66, icet_vc=0.39))]
+            GlobalStats(icet_rw=1.66, icet_vc=0.39, dafny_t=1141.35))]
     
     stat_total = GlobalStats()
 
+    print
     print " & ".join(["", stat_total.header()]), '\\\\'
     print "\\midrule"
 
@@ -125,8 +133,12 @@ if __name__ == '__main__':
         update_stats(op.join(ICET_FOLDER,  icet_filename),  both_stat.icet_stats)
         update_stats(op.join(DAFNY_FOLDER, dafny_filename), both_stat.dafny_stats)
 
+        if dafny_filename in DAFNY_BLACKLIST:
+            both_stat.dafny_missing = True
+
         print " & ".join([NAME_FMT % name, both_stat.row()]), '\\\\'
         stat_total += both_stat
 
     print "\\midrule"
     print " & ".join([NAME_FMT % "\\textbf{Total}", stat_total.row()]), '\\\\'
+    print
